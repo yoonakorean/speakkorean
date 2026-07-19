@@ -30,11 +30,9 @@
 
         .header { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px; }
         .top-row { display: flex; justify-content: space-between; align-items: center; }
-        .unit-selector { display: flex; align-items: center; gap: 8px; cursor: pointer; background: #f3f4f6; padding: 6px 14px; border-radius: 8px; font-weight: bold; }
         .stages-indicator { display: flex; gap: 8px; }
         .stage-dot { padding: 6px 12px; background: #e5e7eb; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: #6b7280; transition: all 0.3s; cursor: pointer; }
         .stage-dot.active { background: var(--primary); color: #fff; }
-        .stage-dot.locked { opacity: 0.4; cursor: not-allowed; }
 
         .progress-bar-container { width: 100%; background: #e5e7eb; height: 10px; border-radius: 5px; margin-bottom: 20px; overflow: hidden; position: relative; }
         .progress-bar { height: 100%; background: var(--success); width: 0%; transition: width 0.3s ease; }
@@ -51,12 +49,14 @@
 
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 10px; }
         .option-btn { background: #f9fafb; border: 2px solid #e5e7eb; padding: 14px; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
-        .option-btn:hover { background: #f3f4f6; border-color: #cbd5e1; }
         
-        .hint-box { background: #fee2e2; border-left: 4px solid var(--danger); color: #b91c1c; padding: 12px; border-radius: 8px; font-weight: 600; margin-top: 15px; text-align: left; width: 100%; }
+        /* 【功能修改 3】：優化提示卡內部的段落間距與舒適度 */
+        .hint-box { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e40af; padding: 18px; border-radius: 12px; text-align: left; width: 100%; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .hint-box p { line-height: 1.8; margin-bottom: 12px; font-size: 1.05rem; }
+        .hint-box p:last-child { margin-bottom: 0; }
         .hint-btn-trigger { background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; font-size: 0.95rem; text-decoration: underline; margin-top: 5px; }
 
-        .status-msg { margin-top: 15px; font-weight: bold; text-align: center; min-height: 24px; font-size: 1.1rem; }
+        .status-msg { margin-top: 15px; font-weight: bold; text-align: center; min-height: 24px; font-size: 1.1rem; width: 100%; }
         .listening-active { color: var(--danger); animation: pulse 1.2s infinite; font-size: 1.2rem; background: #ffe4e6; padding: 8px; border-radius: 8px; }
         .btn-action-row { display: flex; gap: 10px; width: 100%; margin-top: 15px; }
 
@@ -67,22 +67,16 @@
         .btn-danger { background: var(--danger); color: white; }
         
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; text-align: center; }
         .modal-content input { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; }
         
-        .rank-tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; }
-        .rank-tab { flex: 1; padding: 8px 4px; font-size: 0.85rem; font-weight: bold; border: none; background: #e5e7eb; border-radius: 6px; cursor: pointer; }
-        .rank-tab.active { background: var(--primary); color: white; }
-        .rank-list { text-align: left; max-height: 240px; overflow-y: auto; margin-bottom: 15px; }
-        .rank-item { display: flex; justify-content: space-between; padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-size: 0.95rem; }
-
         .hidden { display: none !important; }
         @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <!-- 1. 登入與註冊主視窗 -->
+    <!-- 1. 登入與註冊視窗 -->
     <div class="modal" id="login-modal">
         <div class="modal-content">
             <h3><i class="fa-solid fa-cloud"></i> 雲端韓語大冒險</h3>
@@ -96,31 +90,15 @@
         </div>
     </div>
 
-    <!-- 2. 排行榜視窗 -->
-    <div class="modal hidden" id="rank-modal">
-        <div class="modal-content">
-            <h3><i class="fa-solid fa-trophy" style="color: #f59e0b;"></i> 全球榮譽排行榜</h3>
-            <div class="rank-tabs">
-                <button class="rank-tab active" data-type="word">單字勤奮榜</button>
-                <button class="rank-tab" data-type="grammar">語法大師榜</button>
-                <button class="rank-tab" data-type="challenge">句型挑戰榜</button>
-            </div>
-            <div class="rank-list" id="rank-list-content"></div>
-            <button class="base-btn btn-secondary" id="btn-close-rank">關閉</button>
-        </div>
-    </div>
-
-    <!-- 3. 主學習畫面 -->
+    <!-- 2. 主學習畫面 -->
     <div class="container hidden" id="main-app">
         <div class="user-meta-bar">
             <span><i class="fa-solid fa-user"></i> <span id="lbl-username">學生</span> (🔥<span id="lbl-login-days">1</span>天)</span>
             <span>🪙 XP: <span id="lbl-xp">0</span></span>
-            <span id="btn-trigger-rank" style="cursor:pointer; color:var(--warning)"><i class="fa-solid fa-crown"></i> 排行榜</span>
         </div>
 
         <div class="header">
             <div class="top-row">
-                <!-- 【功能修改 3】：改為任何時候都可以點選下拉選單，自由切換已完成或當前單元 -->
                 <select id="unit-dropdown-selector" style="font-weight:bold; padding:6px 12px; border-radius:8px; border:2px solid #e5e7eb; background:#f3f4f6; cursor:pointer;">
                     <option value="1">單元 1</option>
                     <option value="2">單元 2</option>
@@ -149,7 +127,7 @@
             <div class="blocks-pool hidden" id="puzzle-pool-zone"></div>
 
             <button class="hint-btn-trigger hidden" id="btn-hint-toggle"><i class="fa-solid fa-lightbulb"></i> 點選提示卡</button>
-            <div class="hint-box hidden" id="hint-text-box">提示內容</div>
+            <div class="hint-box hidden" id="hint-text-box"></div>
 
             <div class="options-grid hidden" id="quiz-options-container"></div>
             <div class="status-msg" id="lbl-status-text"></div>
@@ -157,7 +135,6 @@
 
         <div class="btn-action-row">
             <button class="base-btn btn-secondary" id="btn-tts"><i class="fa-solid fa-volume-high"></i> 播放音檔</button>
-            <!-- 【功能新增 2】：新增麥克風錄音時動態出現的暫停錄音按鍵 -->
             <button class="base-btn btn-danger hidden" id="btn-pause-mic"><i class="fa-solid fa-microphone-slash"></i> 暫停錄音</button>
             <button class="base-btn btn-success hidden" id="btn-continue">繼續 <i class="fa-solid fa-arrow-right"></i></button>
         </div>
@@ -166,7 +143,7 @@
     <script src="words.js"></script>
     <script>
         /*************************************************************
-         * 1. Supabase 初始化連接設定
+         * 1. Supabase 初始化設定
          *************************************************************/
         const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4"; 
@@ -177,11 +154,7 @@
         }
 
         let user = ""; 
-        let userScores = {
-            xp: 0, loginDays: 1, maxUnlockedUnit: 1, maxUnlockedStage: 1,
-            wordScores: 0, grammarScores: 0, challengeScores: 0,
-            wordStreaks: {}, wrongWordsBuffer: [] 
-        };
+        let userScores = { xp: 0, loginDays: 1, maxUnlockedUnit: 1, maxUnlockedStage: 1, wrongWordsBuffer: [] };
 
         let currentUnit = 1;
         let currentStage = 1; 
@@ -191,39 +164,27 @@
         let isAnsweredState = false; 
         let roundCorrectCount = 0; 
         let selectedPuzzleBlocks = [];
-        let isWrongAnsweringState = false;
-        let micTimeoutTracker = null; // 5秒未偵測到聲音自動關閉計時器
+        let micTimeoutTracker = null; 
 
-        const unit2Quantifiers = {
-            "학생": "명", "손님": "명", "콜拉": "병", "커피": "잔", "맥주": "병", 
-            "정장": "벌", "옷": "벌", "케이크": "조각", "빵": "개", "지갑": "개",
-            "짐": "개", "볼펜": "자루", "담요": "장", "휴지": "개", "시계": "개", 
-            "지우개": "개", "컴퓨터": "대", "라면": "봉지", "메뉴": "개", "우산": "개", 
-            "잡지": "권", "여權": "개", "핸드폰": "대", "반찬": "접시", "홍차": "잔"
-        };
-        const nativeNumbers = ["", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열하나", "열둘", "열셋", "열넷", "열다섯", "열여섯", "열일곱", "열여덟", "열아홉"];
+        // 數詞與變形對照
+        const nativeNumbersMap = ["", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열하나", "열둘", "열셋", "열넷", "열다섯", "열여섯", "열일곱", "열여덟", "열아홉"];
+        const transformMap = { "하나": "한", "둘": "두", "셋": "세", "넷": "네", "열하나": "열한", "열둘": "열두", "열셋": "열세", "열넷": "열네" };
 
-        /*************************************************************
-         * 2. 帳號與登入核心
-         *************************************************************/
         document.getElementById("btn-register").addEventListener("click", async () => {
             const uInput = document.getElementById("username-input").value.trim();
             const pInput = document.getElementById("password-input").value.trim();
             if(!uInput || !pInput) { alert("請輸入完整的暱稱與密碼！"); return; }
             if(!db) {
                 let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-                if(localDB[uInput]) { alert("❌ 此暱稱已被註冊，請換一個名字！"); return; }
-                localDB[uInput] = { password: pInput, xp:0, loginDays: Math.floor(Math.random()*4)+1, maxUnlockedUnit:1, maxUnlockedStage:1, wordScores:0, grammarScores:0, challengeScores:0, wordStreaks:{}, wrongWordsBuffer:[] };
+                if(localDB[uInput]) { alert("❌ 此暱稱已被註冊！"); return; }
+                localDB[uInput] = { password: pInput, xp:0, loginDays: 1, maxUnlockedUnit:1, maxUnlockedStage:1, wrongWordsBuffer:[] };
                 localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
-                alert("🎉 本地模擬註冊成功！請點擊立即登入。"); return;
+                alert("🎉 本地註冊成功！"); return;
             }
-            try {
-                const { data } = await db.from('students').select('username').eq('username', uInput).maybeSingle();
-                if(data) { alert("❌ 此暱稱已被他人註冊，請換一個名字！"); return; }
-                const { error: insError } = await db.from('students').insert([{ username: uInput, password: pInput, login_days: Math.floor(Math.random() * 4) + 1 }]);
-                if(insError) alert("註冊失敗：" + insError.message);
-                else alert("🎉 雲端帳號註冊成功！請直接點擊「立即登入」。");
-            } catch(e) { alert("註冊錯誤：" + e.message); }
+            const { data } = await db.from('students').select('username').eq('username', uInput).maybeSingle();
+            if(data) { alert("❌ 此暱稱已被他人註冊！"); return; }
+            await db.from('students').insert([{ username: uInput, password: pInput, login_days: 1 }]);
+            alert("🎉 雲端帳號註冊成功！");
         });
 
         document.getElementById("btn-login").addEventListener("click", async () => {
@@ -235,28 +196,36 @@
                 if(!localDB[uInput] || localDB[uInput].password !== pInput) { alert("❌ 帳號或密碼錯誤！"); return; }
                 bindUserData(uInput, localDB[uInput]); return;
             }
-            try {
-                const { data } = await db.from('students').select('*').eq('username', uInput).maybeSingle();
-                if(!data || data.password !== pInput) { alert("❌ 暱稱不存在或密碼輸入錯誤！"); return; }
-                bindUserData(uInput, {
-                    xp: data.xp||0, loginDays: data.login_days||1, maxUnlockedUnit: data.max_unlocked_unit||1,
-                    maxUnlockedStage: data.max_unlocked_stage||1, wordScores: data.word_scores||0,
-                    grammarScores: data.grammar_scores||0, challengeScores: data.challenge_scores||0,
-                    wordStreaks: data.word_streaks || {}, wrongWordsBuffer: data.wrong_words_buffer || []
-                });
-            } catch(e) { alert("登入錯誤：" + e.message); }
+            const { data } = await db.from('students').select('*').eq('username', uInput).maybeSingle();
+            if(!data || data.password !== pInput) { alert("❌ 帳號或密碼錯誤！"); return; }
+            bindUserData(uInput, { xp: data.xp||0, loginDays: data.login_days||1, maxUnlockedUnit: data.max_unlocked_unit||1, maxUnlockedStage: data.max_unlocked_stage||1, wrongWordsBuffer: data.wrong_words_buffer || [] });
         });
 
         function bindUserData(username, dataObj) {
             user = username; userScores = dataObj;
-            if(!userScores.wrongWordsBuffer) userScores.wrongWordsBuffer = [];
             document.getElementById("login-modal").classList.add("hidden");
             document.getElementById("main-app").classList.remove("hidden");
             document.getElementById("lbl-username").innerText = user;
             document.getElementById("lbl-login-days").innerText = userScores.loginDays;
-            updateXPDisplay();
+            document.getElementById("lbl-xp").innerText = userScores.xp;
             setupStageAndUnitControls();
             loadStage(userScores.maxUnlockedUnit, userScores.maxUnlockedStage);
+        }
+
+        function setupStageAndUnitControls() {
+            const dropdown = document.getElementById("unit-dropdown-selector");
+            dropdown.value = currentUnit;
+            dropdown.onchange = function() {
+                if(parseInt(this.value) <= userScores.maxUnlockedUnit) loadStage(parseInt(this.value), 1);
+                else { alert("🔒 該單元尚未解鎖！"); this.value = currentUnit; }
+            };
+            document.querySelectorAll(".stage-dot").forEach(dot => {
+                dot.onclick = function() {
+                    const targetS = parseInt(this.getAttribute("data-stage"));
+                    if(currentUnit < userScores.maxUnlockedUnit || (currentUnit === userScores.maxUnlockedUnit && targetS <= userScores.maxUnlockedStage)) loadStage(currentUnit, targetS);
+                    else alert("🔒 該關卡尚未解鎖！");
+                }
+            });
         }
 
         async function saveToRemote() {
@@ -266,50 +235,22 @@
                 if(localDB[user]) { Object.assign(localDB[user], userScores); localStorage.setItem("LOCAL_DB", JSON.stringify(localDB)); }
                 return;
             }
-            await db.from('students').update({
-                xp: userScores.xp, max_unlocked_unit: userScores.maxUnlockedUnit,
-                max_unlocked_stage: userScores.maxUnlockedStage, word_scores: userScores.wordScores,
-                grammar_scores: userScores.grammarScores, challenge_scores: userScores.challengeScores,
-                word_streaks: userScores.wordStreaks, wrong_words_buffer: userScores.wrongWordsBuffer
-            }).eq('username', user);
+            await db.from('students').update({ xp: userScores.xp, max_unlocked_unit: userScores.maxUnlockedUnit, max_unlocked_stage: userScores.maxUnlockedStage, wrong_words_buffer: userScores.wrongWordsBuffer }).eq('username', user);
         }
 
-        function updateXPDisplay() { document.getElementById("lbl-xp").innerText = userScores.xp; }
-
-        // 【功能修改 3】：強化單元下拉選單與階段控制，解鎖過的皆可自由點擊回去挑戰
-        function setupStageAndUnitControls() {
-            const dropdown = document.getElementById("unit-dropdown-selector");
-            dropdown.value = currentUnit;
-            dropdown.onchange = function() {
-                const targetUnit = parseInt(this.value);
-                if(targetUnit <= userScores.maxUnlockedUnit) {
-                    loadStage(targetUnit, 1);
-                } else {
-                    alert("🔒 該單元尚未解鎖！");
-                    dropdown.value = currentUnit;
-                }
-            };
-
-            document.querySelectorAll(".stage-dot").forEach(dot => {
-                dot.onclick = function() {
-                    const targetS = parseInt(this.getAttribute("data-stage"));
-                    if(currentUnit < userScores.maxUnlockedUnit || (currentUnit === userScores.maxUnlockedUnit && targetS <= userScores.maxUnlockedStage)) {
-                        loadStage(currentUnit, targetS);
-                    } else {
-                        alert("🔒 該關卡尚未解鎖，請依照進度逐步通關！");
-                    }
-                }
-            });
+        function hasBatchim(word) {
+            if (!word) return false;
+            const lastChar = word.charCodeAt(word.length - 1);
+            if (lastChar < 0xAC00 || lastChar > 0xD7A3) return false;
+            return (lastChar - 0xAC00) % 28 !== 0;
         }
 
         /*************************************************************
-         * 3. 核心題目佇列配給引擎
+         * 2. 核心題目佇列配給引擎
          *************************************************************/
         function loadStage(unit, stage) {
             stopSpeechRecognition();
-            currentUnit = unit; currentStage = stage; currentIndex = 0; roundCorrectCount = 0;
-            isAnsweredState = false; isWrongAnsweringState = false;
-            
+            currentUnit = unit; currentStage = stage; currentIndex = 0; roundCorrectCount = 0; isAnsweredState = false;
             document.getElementById("unit-dropdown-selector").value = currentUnit;
             document.getElementById("hint-text-box").classList.add("hidden");
             document.getElementById("btn-hint-toggle").classList.add("hidden");
@@ -317,15 +258,13 @@
             document.getElementById("btn-pause-mic").classList.add("hidden");
             
             document.querySelectorAll(".stage-dot").forEach(dot => {
-                const sNum = parseInt(dot.getAttribute("data-stage"));
-                dot.className = "stage-dot" + (sNum === currentStage ? " active" : "");
+                dot.className = "stage-dot" + (parseInt(dot.getAttribute("data-stage")) === currentStage ? " active" : "");
             });
 
             const modeBadge = document.getElementById("lbl-mode-text");
             if(currentStage === 3) {
                 modeBadge.innerText = "地獄挑戰關"; modeBadge.className = "mode-badge mode-challenge";
-                document.getElementById("hp-box").classList.remove("hidden");
-                hp = 5; renderHP();
+                document.getElementById("hp-box").classList.remove("hidden"); hp = 5; renderHP();
             } else {
                 modeBadge.innerText = "基礎練習關"; modeBadge.className = "mode-badge mode-practice";
                 document.getElementById("hp-box").classList.add("hidden");
@@ -335,71 +274,84 @@
             showCurrentQuestion();
         }
 
-        // 輔助函式：判斷韓文字尾是否有收音（尾音）
-        function hasBatchim(word) {
-            if (!word) return false;
-            const lastChar = word.charCodeAt(word.length - 1);
-            if (lastChar < 0xAC00 || lastChar > 0xD7A3) return false;
-            return (lastChar - 0xAC00) % 28 !== 0;
-        }
-
         function buildQueue() {
-            if(!window.globalWordsPool || window.globalWordsPool.length === 0){ window.globalWordsPool = generateDatabase(); }
             let pool = window.globalWordsPool || [];
-
             if(currentStage === 1) {
-                let rawWords = pool.filter(x => x.unit === currentUnit && x.type === 'word');
-                let temp = [];
-                while(temp.length < 25) { temp = temp.concat(shuffleArray([...rawWords])); }
-                currentQueue = temp.slice(0, 25);
+                let rawWords = pool.filter(x => x.unit === currentUnit);
+                currentQueue = shuffleArray([...rawWords]).slice(0, 15);
             } 
             else if(currentStage === 2) {
-                let rawItems = pool.filter(x => x.unit <= currentUnit && x.type === 'word');
+                let rawItems = pool.filter(x => x.unit === currentUnit && x.type !== "number_pure");
                 let combined = [];
                 
                 rawItems.forEach(item => {
-                    let quant = unit2Quantifiers[item.text] || "개";
-                    let randNum1 = Math.floor(Math.random() * 18) + 1;
-                    let randNum2 = Math.floor(Math.random() * 18) + 1;
+                    let quant = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || "개" : "개";
+                    let randNum = Math.floor(Math.random() * 15) + 1; 
+                    let numWord = nativeNumbersMap[randNum];
                     
-                    let particle1 = hasBatchim(quant) ? "이" : "가";
-                    let particle2 = hasBatchim(quant) ? "이" : "가";
+                    // 特殊處理變形機制 (如: 하나 -> 한, 열다섯 -> 열다섯 -> 拆字時處理)
+                    let displayNumWord = transformMap[numWord] || numWord;
+                    let particle = hasBatchim(quant) ? "이" : "가";
                     
-                    let sentenceAudio1 = `${item.text} ${nativeNumbers[randNum1]} ${quant}${particle1} 있어요.`;
-                    let sentenceAudio2 = `${item.text} ${nativeNumbers[randNum2]} ${quant}${particle2} 있어요.`;
+                    // 根據需求合成完整句子
+                    let sentenceAudio = "";
+                    let chineseMeaning = "";
+                    
+                    if (currentUnit === 1) {
+                        sentenceAudio = `${item.text}${particle} 있어요.`;
+                        chineseMeaning = `有${item.chinese}`;
+                    } else if (currentUnit === 2) {
+                        sentenceAudio = `${item.text} ${displayNumWord} ${quant}${particle} 있어요.`;
+                        chineseMeaning = `有${randNum}${quant}${item.chinese}`;
+                    } else if (currentUnit === 3) {
+                        sentenceAudio = `${item.text} 주세요.`;
+                        chineseMeaning = `請給我${item.chinese}`;
+                    }
 
-                    // 第一次：聽完整語音排字塊
-                    combined.push({ 
-                        type: 'puzzle_sentence', 
-                        text: item.text, 
-                        chinese: getChineseHintString(item),
-                        audioText: sentenceAudio1, 
-                        blocks: [item.text, nativeNumbers[randNum1], `${quant}${particle1}`, "있어요."],
-                        step: 1 
-                    });
-                    // 第二次：只秀關鍵字(單字)，盲聽語音進行完整跟讀判讀
-                    combined.push({ 
-                        type: 'puzzle_sentence', 
-                        text: item.text, 
-                        chinese: getChineseHintString(item),
-                        audioText: sentenceAudio2, 
-                        step: 2 
-                    });
+                    // 【功能修改 4】：階段二字塊切割邏輯 (包含：이 있어요 / 가 있어요 結合、量詞與助詞分離、열다섯拆開)
+                    let blocks = [];
+                    if (currentUnit === 1) {
+                        blocks = [item.text, `${particle} 있어요.`];
+                    } else if (currentUnit === 2) {
+                        blocks.push(item.text);
+                        // 如果是雙位數例如 열다섯，需切分成 "열", "다섯"
+                        if (numWord.startsWith("열") && numWord.length > 1) {
+                            let singleDigit = numWord.replace("열", ""); // 得到 "다섯"
+                            blocks.push("열");
+                            blocks.push(transformMap[singleDigit] || singleDigit);
+                        } else {
+                            blocks.push(displayNumWord);
+                        }
+                        blocks.push(quant);
+                        blocks.push(`${particle} 있어요.`);
+                    } else if (currentUnit === 3) {
+                        blocks = [item.text, "주세요."];
+                    }
+
+                    combined.push({ type: 'puzzle', text: item.text, chinese: item.chinese, fullChinese: chineseMeaning, audioText: sentenceAudio, blocks: blocks, step: 1 });
+                    combined.push({ type: 'speech', text: item.text, chinese: item.chinese, fullChinese: chineseMeaning, audioText: sentenceAudio, step: 2 });
                 });
-                currentQueue = shuffleArray(combined).slice(0, 15);
+                currentQueue = shuffleArray(combined).slice(0, 10);
             } 
             else if(currentStage === 3) {
-                // 【功能修改 1】：階段三出題必須是符合韓文語法規則的完整句子
-                let rawItems = pool.filter(x => x.type === 'word');
+                let rawItems = pool.filter(x => x.unit === currentUnit && x.type !== "number_pure");
                 let combinedSentences = [];
                 rawItems.forEach(item => {
-                    let quant = unit2Quantifiers[item.text] || "개";
-                    let randNum = Math.floor(Math.random() * 18) + 1;
+                    let quant = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || "개" : "개";
+                    let randNum = Math.floor(Math.random() * 15) + 1;
+                    let numWord = nativeNumbersMap[randNum];
+                    let displayNumWord = transformMap[numWord] || numWord;
                     let particle = hasBatchim(quant) ? "이" : "가";
-                    let finalSentence = `${item.text} ${nativeNumbers[randNum]} ${quant}${particle} 있어요.`;
-                    combinedSentences.push({ text: finalSentence, chinese: `${getChineseHintString(item)}有 ${randNum} ${quant}` });
+                    
+                    let finalSentence = "";
+                    let chineseMeaning = "";
+                    if(currentUnit === 1) { finalSentence = `${item.text}${particle} 있어요.`; chineseMeaning = `有${item.chinese}`; }
+                    else if(currentUnit === 2) { finalSentence = `${item.text} ${displayNumWord} ${quant}${particle} 있어요.`; chineseMeaning = `有${randNum}${quant}${item.chinese}`; }
+                    else if(currentUnit === 3) { finalSentence = `${item.text} 주세요.`; chineseMeaning = `請給我${item.chinese}`; }
+                    
+                    combinedSentences.push({ text: finalSentence, chinese: item.chinese, fullChinese: chineseMeaning });
                 });
-                currentQueue = shuffleArray(combinedSentences).slice(0, 20);
+                currentQueue = shuffleArray(combinedSentences).slice(0, 10);
             }
         }
 
@@ -417,7 +369,7 @@
         }
 
         /*************************************************************
-         * 4. 題型動態突變與渲染引擎
+         * 3. 題型動態突變與選項防錯渲染
          *************************************************************/
         function showCurrentQuestion() {
             if(currentIndex >= currentQueue.length) { handleStageComplete(); return; }
@@ -429,7 +381,6 @@
             document.getElementById("btn-pause-mic").classList.add("hidden");
             document.getElementById("lbl-status-text").className = "status-msg";
             document.getElementById("lbl-status-text").innerText = "";
-            
             document.getElementById("quiz-options-container").classList.add("hidden");
             document.getElementById("puzzle-selected-zone").classList.add("hidden");
             document.getElementById("puzzle-pool-zone").classList.add("hidden");
@@ -440,54 +391,53 @@
             const item = currentQueue[currentIndex];
 
             if(currentStage === 1) {
-                // 階段一：單字四選一
                 document.getElementById("quiz-options-container").classList.remove("hidden");
                 document.getElementById("lbl-target-text").innerText = item.text;
                 buildOptionsStage1(item);
-                // 【功能修改 1】：階段一題目出現時全自動播音檔，且刪除提示卡
                 playTTS(item.text);
             } 
             else if(currentStage === 2) {
                 if(item.step === 1) {
-                    // 階段二第一次：聽音字塊拼圖
                     document.getElementById("lbl-target-text").innerText = "🎵 聽音擺放字塊完成句子";
                     playTTS(item.audioText);
                     buildPuzzleEngine(item.audioText, item.blocks);
                 } else {
-                    // 階段二第二次：【功能修改 1】關鍵字提示，判讀內容與音檔完全相同
                     document.getElementById("lbl-target-text").innerText = `關鍵字提示：${item.text}`;
                     playTTS(item.audioText);
                     setTimeout(() => { triggerAutoSpeechFlow(item.audioText); }, 1600);
                 }
             } 
             else if(currentStage === 3) {
-                // 階段三：無任何提示盲聽完整句子跟讀
-                document.getElementById("lbl-target-text").innerText = "🔊 盲聽盲說完整句子挑戰...";
+                document.getElementById("lbl-target-text").innerText = "🔊 盲聽跟讀挑戰...";
                 playTTS(item.text);
                 setTimeout(() => { triggerAutoSpeechFlow(item.text); }, 1600);
             }
         }
 
-        /*************************************************************
-         * 5. 題型渲染與選項防錯過濾
-         *************************************************************/
-        // 【功能修改 4】：嚴格限縮單字選項，100% 排除語法規則或非單字庫元素
         function buildOptionsStage1(correctItem) {
             const container = document.getElementById("quiz-options-container");
             container.innerHTML = "";
             let answers = [correctItem];
             
-            let pool = window.globalWordsPool.filter(x => x.type === 'word' && x.text !== correctItem.text && x.unit === currentUnit && x.chinese);
-            if(pool.length < 3) pool = window.globalWordsPool.filter(x => x.type === 'word' && x.text !== correctItem.text && x.chinese);
+            // 根據需求進行群組限定過濾
+            let fullPool = (window.globalWordsPool || []).filter(x => x.text !== correctItem.text && x.unit === currentUnit);
+            if(correctItem.type === "number_pure") {
+                fullPool = fullPool.filter(x => x.type === "number_pure");
+            } else {
+                fullPool = fullPool.filter(x => x.type !== "number_pure");
+            }
             
-            shuffleArray(pool);
-            for(let i=0; i<3; i++) { if(pool[i]) answers.push(pool[i]); }
+            shuffleArray(fullPool);
+            for(let i=0; i<fullPool.length; i++) {
+                if(answers.length < 4) answers.push(fullPool[i]);
+            }
             answers = shuffleArray(answers);
 
             answers.forEach(ans => {
+                if(!ans) return;
                 const btn = document.createElement("button");
                 btn.className = "option-btn";
-                btn.innerText = ans.chinese; // 顯示純中文單字名稱
+                btn.innerText = ans.chinese; 
                 btn.addEventListener("click", () => { if(!isAnsweredState) handleAnswerAction(ans.text === correctItem.text); });
                 container.appendChild(btn);
             });
@@ -496,21 +446,18 @@
         function buildPuzzleEngine(fullTargetText, correctBlocks) {
             const selectedZone = document.getElementById("puzzle-selected-zone");
             const poolZone = document.getElementById("puzzle-pool-zone");
-            selectedZone.classList.remove("hidden");
-            poolZone.classList.remove("hidden");
-            selectedZone.innerHTML = "";
-            poolZone.innerHTML = "";
+            selectedZone.classList.remove("hidden"); poolZone.classList.remove("hidden");
+            selectedZone.innerHTML = ""; poolZone.innerHTML = "";
             selectedPuzzleBlocks = [];
 
-            let distractors = ["개", "명", "잔", "병", "하나", "다섯", "있어요.", "없어요.", "이", "가"];
+            let distractors = ["개", "명", "있어요.", "주세요.", "이", "가", "하나", "다섯"];
             let finalPool = [...correctBlocks];
             distractors.forEach(d => { if(!finalPool.includes(d) && finalPool.length < correctBlocks.length + 3) finalPool.push(d); });
             finalPool = shuffleArray(finalPool);
 
             finalPool.forEach((blockText, idx) => {
                 const block = document.createElement("div");
-                block.className = "word-block";
-                block.innerText = blockText;
+                block.className = "word-block"; block.innerText = blockText;
                 block.setAttribute("data-idx", idx);
                 
                 block.addEventListener("click", () => {
@@ -520,6 +467,7 @@
                         selectedPuzzleBlocks = selectedPuzzleBlocks.filter(b => b.idx !== idx);
                         renderSelectedBlocks(fullTargetText, correctBlocks);
                     } else {
+                        block.add("used");
                         block.classList.add("used");
                         selectedPuzzleBlocks.push({ idx: idx, text: blockText, element: block });
                         renderSelectedBlocks(fullTargetText, correctBlocks);
@@ -534,8 +482,7 @@
             selectedZone.innerHTML = "";
             selectedPuzzleBlocks.forEach(b => {
                 const innerBlock = document.createElement("div");
-                innerBlock.className = "word-block";
-                innerBlock.innerText = b.text;
+                innerBlock.className = "word-block"; innerBlock.innerText = b.text;
                 innerBlock.onclick = () => {
                     if(isAnsweredState) return;
                     b.element.classList.remove("used");
@@ -553,50 +500,42 @@
         }
 
         /*************************************************************
-         * 6. 答題判定與「繼續」按鈕流
+         * 4. 答題判定（合併正解顯示格式）
          *************************************************************/
         function handleAnswerAction(isCorrect) {
-            // 清除5秒未說話計時器與錄音按鈕狀態
             if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
             document.getElementById("btn-pause-mic").classList.add("hidden");
 
             isAnsweredState = true;
             const item = currentQueue[currentIndex];
 
-            // 處理正解文字與音檔答案同步
             let correctKorean = item.text;
-            let correctChinese = item.chinese || getChineseHintString(item);
-            if(currentStage === 2) {
-                correctKorean = item.audioText;
-                correctChinese = `${item.chinese} 的完整文法句`;
-            }
+            let correctChinese = item.chinese;
+            if(currentStage === 2) { correctKorean = item.audioText; correctChinese = item.fullChinese; }
+            if(currentStage === 3) { correctKorean = item.text; correctChinese = item.fullChinese; }
 
             if(isCorrect) {
-                roundCorrectCount++;
-                userScores.xp += (currentStage === 3 ? 5 : 2);
+                roundCorrectCount++; userScores.xp += (currentStage === 3 ? 5 : 2);
                 document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--success)">🥇 答對了！</span>`;
-                userScores.wrongWordsBuffer = userScores.wrongWordsBuffer.filter(x => x !== item.text);
             } else {
-                // 【功能修改 1】：答錯時，正解清晰顯示答案的韓文和中文
-                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger); font-size:1rem; display:block; line-height:1.4;">❌ 答錯了！<br>正解韓文：${correctKorean}<br>正解中文：${correctChinese}</span>`;
-                userScores.wrongWordsBuffer.push(item.text);
+                // 【功能修改 2】：將原本各自換行的標題，整併改為一行過渡格式 > 正解：(韓文答案＋中文答案)
+                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger); font-size:1.05rem; display:block;">❌ 答錯了！<br><b>正解：(${correctKorean} ${correctChinese})</b></span>`;
                 if(currentStage === 3) { hp--; renderHP(); }
             }
 
             saveToRemote();
-            updateXPDisplay();
+            document.getElementById("lbl-xp").innerText = userScores.xp;
 
-            // 【功能修改 1】：階段二提示卡改為作答完後才能點選，顯示中文與解釋規則
             if(currentStage === 2) {
                 document.getElementById("btn-hint-toggle").classList.remove("hidden");
             }
 
             if(currentStage === 3) {
                 if(hp <= 0) {
-                    alert("💀 挑戰失敗！正確率未達標，請重新複習前面階段一和階段二後再試！");
+                    alert("💀 挑戰失敗！正確率未達標，請重新修煉！");
                     loadStage(currentUnit, 1);
                 } else {
-                    setTimeout(() => { currentIndex++; showCurrentQuestion(); }, 2500);
+                    setTimeout(() => { currentIndex++; showCurrentQuestion(); }, 2800);
                 }
             } else {
                 document.getElementById("btn-continue").classList.remove("hidden");
@@ -605,17 +544,19 @@
 
         document.getElementById("btn-continue").addEventListener("click", () => {
             document.getElementById("btn-continue").classList.add("hidden");
-            currentIndex++;
-            showCurrentQuestion();
+            currentIndex++; showCurrentQuestion();
         });
 
         /*************************************************************
-         * 7. 跟讀自動辨識系統（5秒無聲音自動關閉、新增暫停功能）
+         * 5. 跟讀自動辨識系統（修復麥克風啟動與超時防錯）
          *************************************************************/
         let recognition = null;
         if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition(); recognition.lang = 'ko-KR'; recognition.continuous = false;
+            recognition = new SpeechRecognition(); 
+            recognition.lang = 'ko-KR'; 
+            recognition.continuous = false;
+            recognition.interimResults = false;
         }
 
         function triggerAutoSpeechFlow(targetKoreanText) {
@@ -624,34 +565,37 @@
                 return;
             }
             
-            // 【功能修改 1】：開啟麥克風並顯示「現在請說話...」
+            if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
+            
             document.getElementById("lbl-status-text").className = "status-msg listening-active";
             document.getElementById("lbl-status-text").innerHTML = `<i class="fa-solid fa-microphone"></i> 現在請說話...`;
             
-            // 【功能新增 2】：有麥克風開啟時，動態新增顯示暫停錄音按鍵
             const pauseBtn = document.getElementById("btn-pause-mic");
             pauseBtn.classList.remove("hidden");
             pauseBtn.onclick = function() {
                 stopSpeechRecognition();
-                pauseBtn.classList.add("hidden");
+                this.classList.add("hidden");
                 document.getElementById("lbl-status-text").className = "status-msg";
-                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--warning)">⏸️ 已暫停錄音，請點播放鈕重新收聽或跟讀</span>`;
+                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--warning)">⏸️ 已暫停錄音</span>`;
             };
 
-            try { recognition.start(); } catch(e){}
+            // 【功能修改 1】：優化麥克風觸發監聽
+            recognition.onstart = function() {
+                // 當麥克風「真正成功開啟並收到硬體控制」時，才開始計算 5 秒未偵測聲音超時倒數
+                if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
+                micTimeoutTracker = setTimeout(() => {
+                    stopSpeechRecognition();
+                    document.getElementById("lbl-status-text").className = "status-msg";
+                    document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger)">⚠️ 5秒內未偵測到聲音，自動關閉</span>`;
+                    setTimeout(() => { handleAnswerAction(false); }, 1200);
+                }, 5000);
+            };
 
-            // 【功能新增 2】：若開啟麥克風後 5 秒內未偵測到聲音，全自動斷開關閉
-            if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
-            micTimeoutTracker = setTimeout(() => {
-                stopSpeechRecognition();
-                document.getElementById("lbl-status-text").className = "status-msg";
-                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger)">⚠️ 超時未偵測到聲音，判定未通過</span>`;
-                setTimeout(() => { handleAnswerAction(false); }, 1200);
-            }, 5000);
+            try { recognition.start(); } catch(e){ console.log("Mic start error or busy:", e); }
 
             recognition.onresult = function(event) {
                 if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
-                try { recognition.stop(); } catch(e){}
+                stopSpeechRecognition();
                 document.getElementById("lbl-status-text").className = "status-msg";
 
                 const speechResult = event.results[0][0].transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
@@ -664,11 +608,15 @@
                 }
             };
 
-            recognition.onerror = function() {
+            recognition.onerror = function(event) {
+                console.log("Speech recognition error:", event.error);
                 if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
-                try { recognition.stop(); } catch(e){}
-                document.getElementById("lbl-status-text").className = "status-msg";
-                handleAnswerAction(false);
+                // 排除並非真正失敗的 busy 狀態
+                if(event.error !== 'no-speech') {
+                    stopSpeechRecognition();
+                    document.getElementById("lbl-status-text").className = "status-msg";
+                    handleAnswerAction(false);
+                }
             };
         }
 
@@ -678,64 +626,31 @@
             document.getElementById("btn-pause-mic").classList.add("hidden");
         }
 
-        /*************************************************************
-         * 8. 階段結算判定與進階
-         *************************************************************/
         function handleStageComplete() {
             let rate = roundCorrectCount / currentQueue.length;
             if(currentStage === 1) {
                 if(rate >= 0.80) {
-                    alert(`太棒了🎉 答對率達 ${Math.round(rate*100)}%！成功解鎖階段二！`);
+                    alert(`過關🎉 成功解鎖階段二！`);
                     if(userScores.maxUnlockedStage === 1) userScores.maxUnlockedStage = 2;
                     saveToRemote(); loadStage(currentUnit, 2);
                 } else {
-                    alert(`💡 答對率僅 ${Math.round(rate*100)}%，未達 80% 門檻，再重新挑戰一次！`);
-                    loadStage(currentUnit, 1);
+                    alert(`💡 未達 80% 門檻，再挑戰一次！`); loadStage(currentUnit, 1);
                 }
             } 
             else if(currentStage === 2) {
-                alert("🎉 階段二文法句型拼圖完成！解鎖階段三終極挑戰關！");
+                alert("🎉 階段二句型拼圖完成！解鎖階段三挑戰！");
                 if(userScores.maxUnlockedStage === 2) userScores.maxUnlockedStage = 3;
                 saveToRemote(); loadStage(currentUnit, 3);
             } 
             else if(currentStage === 3) {
-                if(roundCorrectCount >= 15) {
-                    alert(`🏆 完美通關！你在 20 題完整盲聽句子中答對了 ${roundCorrectCount} 題！解鎖下一單元！`);
+                if(roundCorrectCount >= 7) {
+                    alert(`🏆 完美通關！解鎖下一單元！`);
                     userScores.maxUnlockedUnit = currentUnit + 1; userScores.maxUnlockedStage = 1;
                     saveToRemote(); loadStage(currentUnit + 1, 1);
                 } else {
-                    alert(`💀 殘念！20 題中僅答對 ${roundCorrectCount} 題，未達 15 題門檻。請回到前面重新修煉！`);
-                    loadStage(currentUnit, 1);
+                    alert(`💀 答對題數不足，回到前面重新修煉！`); loadStage(currentUnit, 1);
                 }
             }
-        }
-
-        /*************************************************************
-         * 9. 排行榜與基本工具
-         *************************************************************/
-        let activeRankTab = "word";
-        document.getElementById("btn-trigger-rank").addEventListener("click", () => { renderRankList(); document.getElementById("rank-modal").classList.remove("hidden"); });
-        document.getElementById("btn-close-rank").addEventListener("click", () => document.getElementById("rank-modal").classList.add("hidden"));
-
-        async function renderRankList() {
-            const listContainer = document.getElementById("rank-list-content");
-            listContainer.innerHTML = "載入中...";
-            let players = [];
-            if(!db) {
-                let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-                players = Object.keys(localDB).map(n => ({ name: n, word: localDB[n].wordScores, grammar: localDB[n].grammarScores, challenge: localDB[n].challengeScores }));
-            } else {
-                const { data } = await db.from('students').select('username, word_scores, grammar_scores, challenge_scores');
-                if(data) players = data.map(x => ({ name: x.username, word: x.word_scores, grammar: x.grammar_scores, challenge: x.challenge_scores }));
-            }
-            players.sort((a, b) => b[activeRankTab] - a[activeRankTab]);
-            listContainer.innerHTML = "";
-            players.forEach((p, idx) => {
-                let crown = (idx===0)?"🥇 ":(idx===1)?"🥈 ":(idx===2)?"🥉 ":"";
-                const row = document.createElement("div"); row.className = "rank-item";
-                row.innerHTML = `<span>${crown}${idx + 1}. ${p.name}</span><span>${p[activeRankTab] || 0} 分</span>`;
-                listContainer.appendChild(row);
-            });
         }
 
         function playTTS(text) {
@@ -747,37 +662,29 @@
         }
         document.getElementById("btn-tts").addEventListener("click", () => {
             const item = currentQueue[currentIndex];
-            if(item) {
-                if(currentStage === 2) playTTS(item.audioText);
-                else playTTS(item.text);
-            }
+            if(item) playTTS(item.audioText || item.text);
         });
 
-        function getChineseHintString(item) {
-            if(item.chinese) return item.chinese;
-            const dict = {
-                "짐":"行李", "볼펜":"原子筆", "담요":"毛毯", "휴지":"衛生紙", "시계":"時鐘", "지우개":"橡皮擦", "컴퓨터":"電腦", "라면":"泡麵", "콜라":"可樂", "지갑":"皮夾", "커피":"咖啡", "메뉴":"菜單", "우산":"雨傘", "손님":"客人", "정장":"西裝", "맥주":"啤酒", "잡誌":"雜誌", "여권":"護照", "핸드폰":"手機", "옷":"衣服", "반찬":"小菜", "홍차":"紅茶", "빵":"麵包"
-            };
-            return dict[item.text] || "核心單字";
-        }
-
-        // 【功能修改 1】：階段二作答後提示卡點選，提供詳細的量詞與尾音有/無收音文法規則解析
+        // 【功能修改 3】：優化提示卡渲染樣式與間距，並輸出音檔的「整句中文意思」
         document.getElementById("btn-hint-toggle").addEventListener("click", () => {
             const box = document.getElementById("hint-text-box");
             if(box.classList.contains("hidden")) {
                 const item = currentQueue[currentIndex];
-                let quant = unit2Quantifiers[item.text] || "개";
-                let ruleStr = hasBatchim(quant) ? "子音 (有收音) + 이 있어요" : "母音 (無收音) + 가 있어요";
+                let quant = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || "개" : "개";
                 
+                let ruleStr = "";
+                if(currentUnit === 1) ruleStr = hasBatchim(item.text) ? "子音 (有收音) + 이 있어요/이 없어요" : "母音 (無收音) + 가 있어요/가 없어요";
+                else if(currentUnit === 2) ruleStr = hasBatchim(quant) ? "量詞末字子音 (有收音) + 이 있어요" : "量詞末字母音 (無收音) + 가 있어요";
+                else if(currentUnit === 3) ruleStr = "名詞後面直接連接固定請託句型 + 주세요 (請給我...)";
+
+                // 利用網頁樣式排版，拉開行高與段落落差
                 box.innerHTML = `
-                    💡 <b>中文意思</b>：${item.chinese || getChineseHintString(item)}<br>
-                    📐 <b>量詞文法規則</b>：<br>
-                    單字「${item.text}」對應固定量詞為「${quant}」。<br>
-                    因「${quant}」結尾為${hasBatchim(quant) ? "子音" : "母音"}，故套用公式：<u>${ruleStr}</u>。
+                    <p>💡 <b>中文意思</b>：<br><span style="color:#2563eb; font-weight:bold;">${item.fullChinese || item.chinese}</span></p>
+                    <p>📐 <b>語法規則解析</b>：<br><span style="color:#059669; font-weight:500;">${ruleStr}</span></p>
                 `;
                 box.classList.remove("hidden");
             } else { box.classList.add("hidden"); }
         });
     </script>
 </body>
-</html>
+</html>ㄎ
