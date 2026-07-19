@@ -182,9 +182,9 @@
         // 專用精準量詞資料庫 (問題7)
         window.UnitQuantifiers = {
             "사과": { ko: "개", zh: "個" },
-            "우유": { ko: "개", zh: "盒" },
+            "우유": { ko: "병", zh: "瓶" },
             "고양이": { ko: "마리", zh: "隻" },
-            "개": { ko: "마리", zh: "隻" },
+            "강아지": { ko: "마리", zh: "隻" },
             "의자": { ko: "개", zh: "個" },
             "책상": { ko: "개", zh: "個" },
             
@@ -199,7 +199,7 @@
             "학생": { ko: "명", zh: "位" },
 
             "빵": { ko: "개", zh: "個" },
-            "김밥": { ko: "줄", zh: "條" },
+            "김밥": { ko: "개", zh: "個" },
             "라면": { ko: "개", zh: "個" },
             "콜라": { ko: "병", zh: "瓶" }
         };
@@ -210,7 +210,7 @@
          * 1. Supabase 初始化設定 (無密鑰時全自動降級測試模式)
          *************************************************************/
         const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; 
-        const SUPABASE_ANON_KEY = "請放入你的Supabase Anon Key"; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4"; 
         
         let db = null;
         if (SUPABASE_URL && !SUPABASE_URL.includes("請放入") && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes("請放入")) {
