@@ -50,13 +50,12 @@
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 10px; }
         .option-btn { background: #f9fafb; border: 2px solid #e5e7eb; padding: 14px; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
         
-        /* 【功能修改 3】：優化提示卡內部的段落間距與舒適度 */
         .hint-box { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e40af; padding: 18px; border-radius: 12px; text-align: left; width: 100%; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
         .hint-box p { line-height: 1.8; margin-bottom: 12px; font-size: 1.05rem; }
         .hint-box p:last-child { margin-bottom: 0; }
         .hint-btn-trigger { background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; font-size: 0.95rem; text-decoration: underline; margin-top: 5px; }
 
-        .status-msg { margin-top: 15px; font-weight: bold; text-align: center; min-height: 24px; font-size: 1.1rem; width: 100%; }
+        .status-msg { margin-top: 15px; text-align: center; min-height: 24px; font-size: 1.1rem; width: 100%; }
         .listening-active { color: var(--danger); animation: pulse 1.2s infinite; font-size: 1.2rem; background: #ffe4e6; padding: 8px; border-radius: 8px; }
         .btn-action-row { display: flex; gap: 10px; width: 100%; margin-top: 15px; }
 
@@ -76,7 +75,7 @@
 </head>
 <body>
 
-    <!-- 1. 登入與註冊視窗 -->
+    <!-- 登入與註冊視窗 -->
     <div class="modal" id="login-modal">
         <div class="modal-content">
             <h3><i class="fa-solid fa-cloud"></i> 雲端韓語大冒險</h3>
@@ -90,7 +89,7 @@
         </div>
     </div>
 
-    <!-- 2. 主學習畫面 -->
+    <!-- 主學習畫面 -->
     <div class="container hidden" id="main-app">
         <div class="user-meta-bar">
             <span><i class="fa-solid fa-user"></i> <span id="lbl-username">學生</span> (🔥<span id="lbl-login-days">1</span>天)</span>
@@ -146,7 +145,7 @@
          * 1. Supabase 初始化設定
          *************************************************************/
         const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; 
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4"; 
+        const SUPABASE_ANON_KEY = "請放入你的Supabase Anon Key"; 
         
         let db = null;
         if (SUPABASE_URL && SUPABASE_URL !== "請放入你的Supabase專案URL") {
@@ -166,7 +165,6 @@
         let selectedPuzzleBlocks = [];
         let micTimeoutTracker = null; 
 
-        // 數詞與變形對照
         const nativeNumbersMap = ["", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열하나", "열둘", "열셋", "열넷", "열다섯", "열여섯", "열일곱", "열여덟", "열아홉"];
         const transformMap = { "하나": "한", "둘": "두", "셋": "세", "넷": "네", "열하나": "열한", "열둘": "열두", "열셋": "열세", "열넷": "열네" };
 
@@ -203,6 +201,7 @@
 
         function bindUserData(username, dataObj) {
             user = username; userScores = dataObj;
+            if(!userScores.wrongWordsBuffer) userScores.wrongWordsBuffer = [];
             document.getElementById("login-modal").classList.add("hidden");
             document.getElementById("main-app").classList.remove("hidden");
             document.getElementById("lbl-username").innerText = user;
@@ -238,15 +237,17 @@
             await db.from('students').update({ xp: userScores.xp, max_unlocked_unit: userScores.maxUnlockedUnit, max_unlocked_stage: userScores.maxUnlockedStage, wrong_words_buffer: userScores.wrongWordsBuffer }).eq('username', user);
         }
 
+        // 【功能修改 6】：重構精準尾音檢查演算法，100% 確保 라면 等結尾正確對接 이
         function hasBatchim(word) {
-            if (!word) return false;
-            const lastChar = word.charCodeAt(word.length - 1);
-            if (lastChar < 0xAC00 || lastChar > 0xD7A3) return false;
-            return (lastChar - 0xAC00) % 28 !== 0;
+            if (!word || word.length === 0) return false;
+            const lastChar = word.charAt(word.length - 1);
+            const charCode = lastChar.charCodeAt(0);
+            if (charCode < 0xAC00 || charCode > 0xD7A3) return false; 
+            return (charCode - 0xAC00) % 28 !== 0; 
         }
 
         /*************************************************************
-         * 2. 核心題目佇列配給引擎
+         * 2. 核心題目佇列配給引擎 (間隔學習法 + 歷史單元跨範圍加權)
          *************************************************************/
         function loadStage(unit, stage) {
             stopSpeechRecognition();
@@ -276,82 +277,124 @@
 
         function buildQueue() {
             let pool = window.globalWordsPool || [];
+            
+            // 【功能修改 5】：間隔學習法與跨單元混算。題目集包含「當前單元」以及「過往所有學過的單元內容」
+            let historicalPool = pool.filter(x => x.unit <= currentUnit);
+            let currentUnitPool = pool.filter(x => x.unit === currentUnit);
+            
+            let finalSelection = [];
+            let wrongBuffer = userScores.wrongWordsBuffer || [];
+
+            // 決定出題總量
+            let targetSize = (currentStage === 1) ? 15 : 10;
+
+            for (let i = 0; i < targetSize * 3; i++) {
+                let chosenItem = null;
+                
+                // 40% 的機率優先把「常錯字本」中的字拉出來重新檢驗 (間隔學習法核心)
+                if (wrongBuffer.length > 0 && Math.random() < 0.40) {
+                    let randomWrongText = wrongBuffer[Math.floor(Math.random() * wrongBuffer.length)];
+                    let match = historicalPool.find(x => x.text === randomWrongText);
+                    if (match) chosenItem = match;
+                }
+                
+                // 否則隨機從可用池中提取
+                if (!chosenItem) {
+                    if (Math.random() < 0.70) {
+                        chosenItem = currentUnitPool[Math.floor(Math.random() * currentUnitPool.length)];
+                    } else {
+                        chosenItem = historicalPool[Math.floor(Math.random() * historicalPool.length)];
+                    }
+                }
+
+                if (chosenItem && !finalSelection.includes(chosenItem)) {
+                    finalSelection.push(chosenItem);
+                }
+                if (finalSelection.length >= targetSize) break;
+            }
+
+            // 保底防空機制
+            while (finalSelection.length < targetSize && currentUnitPool.length > 0) {
+                let candidate = currentUnitPool[Math.floor(Math.random() * currentUnitPool.length)];
+                if(!finalSelection.includes(candidate)) finalSelection.push(candidate);
+                else if(finalSelection.length >= currentUnitPool.length) { finalSelection.push(candidate); break; }
+            }
+
+            // 格式轉換適配器
             if(currentStage === 1) {
-                let rawWords = pool.filter(x => x.unit === currentUnit);
-                currentQueue = shuffleArray([...rawWords]).slice(0, 15);
+                currentQueue = finalSelection;
             } 
             else if(currentStage === 2) {
-                let rawItems = pool.filter(x => x.unit === currentUnit && x.type !== "number_pure");
                 let combined = [];
-                
-                rawItems.forEach(item => {
-                    let quant = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || "개" : "개";
+                finalSelection.forEach(item => {
+                    if (item.type === "number_pure") return; // 排除純數字
+                    
+                    let quantObj = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || {ko:"개", zh:"個"} : {ko:"개", zh:"個"};
                     let randNum = Math.floor(Math.random() * 15) + 1; 
                     let numWord = nativeNumbersMap[randNum];
-                    
-                    // 特殊處理變形機制 (如: 하나 -> 한, 열다섯 -> 열다섯 -> 拆字時處理)
                     let displayNumWord = transformMap[numWord] || numWord;
-                    let particle = hasBatchim(quant) ? "이" : "가";
                     
-                    // 根據需求合成完整句子
+                    let particle = hasBatchim(item.text) ? "이" : "가";
+                    let quantParticle = hasBatchim(quantObj.ko) ? "이" : "가";
+                    
                     let sentenceAudio = "";
                     let chineseMeaning = "";
                     
-                    if (currentUnit === 1) {
+                    if (item.unit === 1) {
                         sentenceAudio = `${item.text}${particle} 있어요.`;
                         chineseMeaning = `有${item.chinese}`;
-                    } else if (currentUnit === 2) {
-                        sentenceAudio = `${item.text} ${displayNumWord} ${quant}${particle} 있어요.`;
-                        chineseMeaning = `有${randNum}${quant}${item.chinese}`;
-                    } else if (currentUnit === 3) {
+                    } else if (item.unit === 2) {
+                        sentenceAudio = `${item.text} ${displayNumWord} ${quantObj.ko}${quantParticle} 있어요.`;
+                        chineseMeaning = `有${randNum}${quantObj.zh}${item.chinese}`;
+                    } else if (item.unit === 3) {
                         sentenceAudio = `${item.text} 주세요.`;
                         chineseMeaning = `請給我${item.chinese}`;
                     }
 
-                    // 【功能修改 4】：階段二字塊切割邏輯 (包含：이 있어요 / 가 있어요 結合、量詞與助詞分離、열다섯拆開)
                     let blocks = [];
-                    if (currentUnit === 1) {
+                    if (item.unit === 1) {
                         blocks = [item.text, `${particle} 있어요.`];
-                    } else if (currentUnit === 2) {
+                    } else if (item.unit === 2) {
                         blocks.push(item.text);
-                        // 如果是雙位數例如 열다섯，需切分成 "열", "다섯"
                         if (numWord.startsWith("열") && numWord.length > 1) {
-                            let singleDigit = numWord.replace("열", ""); // 得到 "다섯"
+                            let singleDigit = numWord.replace("열", "");
                             blocks.push("열");
                             blocks.push(transformMap[singleDigit] || singleDigit);
                         } else {
                             blocks.push(displayNumWord);
                         }
-                        blocks.push(quant);
-                        blocks.push(`${particle} 있어요.`);
-                    } else if (currentUnit === 3) {
+                        blocks.push(quantObj.ko);
+                        blocks.push(`${quantParticle} 있어요.`);
+                    } else if (item.unit === 3) {
                         blocks = [item.text, "주세요."];
                     }
 
-                    combined.push({ type: 'puzzle', text: item.text, chinese: item.chinese, fullChinese: chineseMeaning, audioText: sentenceAudio, blocks: blocks, step: 1 });
-                    combined.push({ type: 'speech', text: item.text, chinese: item.chinese, fullChinese: chineseMeaning, audioText: sentenceAudio, step: 2 });
+                    combined.push({ type: 'puzzle', text: item.text, chinese: item.chinese, fullChinese: chineseMeaning, audioText: sentenceAudio, blocks: blocks, step: 1, unit: item.unit });
+                    combined.push({ type: 'speech', text: item.text, chinese: item.chinese, fullChinese: chineseMeaning, audioText: sentenceAudio, step: 2, unit: item.unit });
                 });
-                currentQueue = shuffleArray(combined).slice(0, 10);
+                currentQueue = combined;
             } 
             else if(currentStage === 3) {
-                let rawItems = pool.filter(x => x.unit === currentUnit && x.type !== "number_pure");
                 let combinedSentences = [];
-                rawItems.forEach(item => {
-                    let quant = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || "개" : "개";
+                finalSelection.forEach(item => {
+                    if (item.type === "number_pure") return;
+                    let quantObj = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || {ko:"개", zh:"個"} : {ko:"개", zh:"個"};
                     let randNum = Math.floor(Math.random() * 15) + 1;
                     let numWord = nativeNumbersMap[randNum];
                     let displayNumWord = transformMap[numWord] || numWord;
-                    let particle = hasBatchim(quant) ? "이" : "가";
+                    
+                    let particle = hasBatchim(item.text) ? "이" : "가";
+                    let quantParticle = hasBatchim(quantObj.ko) ? "이" : "가";
                     
                     let finalSentence = "";
                     let chineseMeaning = "";
-                    if(currentUnit === 1) { finalSentence = `${item.text}${particle} 있어요.`; chineseMeaning = `有${item.chinese}`; }
-                    else if(currentUnit === 2) { finalSentence = `${item.text} ${displayNumWord} ${quant}${particle} 있어요.`; chineseMeaning = `有${randNum}${quant}${item.chinese}`; }
-                    else if(currentUnit === 3) { finalSentence = `${item.text} 주세요.`; chineseMeaning = `請給我${item.chinese}`; }
+                    if(item.unit === 1) { finalSentence = `${item.text}${particle} 있어요.`; chineseMeaning = `有${item.chinese}`; }
+                    else if(item.unit === 2) { finalSentence = `${item.text} ${displayNumWord} ${quantObj.ko}${quantParticle} 있어요.`; chineseMeaning = `有${randNum}${quantObj.zh}${item.chinese}`; }
+                    else if(item.unit === 3) { finalSentence = `${item.text} 주세요.`; chineseMeaning = `請給我${item.chinese}`; }
                     
                     combinedSentences.push({ text: finalSentence, chinese: item.chinese, fullChinese: chineseMeaning });
                 });
-                currentQueue = shuffleArray(combinedSentences).slice(0, 10);
+                currentQueue = combinedSentences;
             }
         }
 
@@ -402,7 +445,8 @@
                     playTTS(item.audioText);
                     buildPuzzleEngine(item.audioText, item.blocks);
                 } else {
-                    document.getElementById("lbl-target-text").innerText = `關鍵字提示：${item.text}`;
+                    // 【功能修改 2】：修正提示文字顯示，要求完整句音檔內容判定
+                    document.getElementById("lbl-target-text").innerText = `🔊 請跟讀整句朗讀音檔內容`;
                     playTTS(item.audioText);
                     setTimeout(() => { triggerAutoSpeechFlow(item.audioText); }, 1600);
                 }
@@ -419,8 +463,7 @@
             container.innerHTML = "";
             let answers = [correctItem];
             
-            // 根據需求進行群組限定過濾
-            let fullPool = (window.globalWordsPool || []).filter(x => x.text !== correctItem.text && x.unit === currentUnit);
+            let fullPool = (window.globalWordsPool || []).filter(x => x.text !== correctItem.text && x.unit <= currentUnit);
             if(correctItem.type === "number_pure") {
                 fullPool = fullPool.filter(x => x.type === "number_pure");
             } else {
@@ -462,12 +505,12 @@
                 
                 block.addEventListener("click", () => {
                     if(isAnsweredState) return;
+                    // 【功能修改 1】：修正點選時功能失效，由 .add 改回 .classList.add
                     if(block.classList.contains("used")) {
                         block.classList.remove("used");
                         selectedPuzzleBlocks = selectedPuzzleBlocks.filter(b => b.idx !== idx);
                         renderSelectedBlocks(fullTargetText, correctBlocks);
                     } else {
-                        block.add("used");
                         block.classList.add("used");
                         selectedPuzzleBlocks.push({ idx: idx, text: blockText, element: block });
                         renderSelectedBlocks(fullTargetText, correctBlocks);
@@ -500,7 +543,7 @@
         }
 
         /*************************************************************
-         * 4. 答題判定（合併正解顯示格式）
+         * 4. 答題判定
          *************************************************************/
         function handleAnswerAction(isCorrect) {
             if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
@@ -518,8 +561,13 @@
                 roundCorrectCount++; userScores.xp += (currentStage === 3 ? 5 : 2);
                 document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--success)">🥇 答對了！</span>`;
             } else {
-                // 【功能修改 2】：將原本各自換行的標題，整併改為一行過渡格式 > 正解：(韓文答案＋中文答案)
-                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger); font-size:1.05rem; display:block;">❌ 答錯了！<br><b>正解：(${correctKorean} ${correctChinese})</b></span>`;
+                // 【功能修改 4】：移除粗體 <b> 標籤，改為流暢的一般字體顯示
+                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger); font-size:1.05rem; display:block;">❌ 答錯了！<br>正解：(${correctKorean} ${correctChinese})</span>`;
+                
+                // 加回錯字緩衝本，用於間隔學習法提升重現率
+                if(item.text && !userScores.wrongWordsBuffer.includes(item.text)){
+                    userScores.wrongWordsBuffer.push(item.text);
+                }
                 if(currentStage === 3) { hp--; renderHP(); }
             }
 
@@ -548,7 +596,7 @@
         });
 
         /*************************************************************
-         * 5. 跟讀自動辨識系統（修復麥克風啟動與超時防錯）
+         * 5. 跟讀自動辨識系統
          *************************************************************/
         let recognition = null;
         if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
@@ -579,9 +627,7 @@
                 document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--warning)">⏸️ 已暫停錄音</span>`;
             };
 
-            // 【功能修改 1】：優化麥克風觸發監聽
             recognition.onstart = function() {
-                // 當麥克風「真正成功開啟並收到硬體控制」時，才開始計算 5 秒未偵測聲音超時倒數
                 if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
                 micTimeoutTracker = setTimeout(() => {
                     stopSpeechRecognition();
@@ -591,7 +637,7 @@
                 }, 5000);
             };
 
-            try { recognition.start(); } catch(e){ console.log("Mic start error or busy:", e); }
+            try { recognition.start(); } catch(e){ console.log(e); }
 
             recognition.onresult = function(event) {
                 if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
@@ -609,9 +655,7 @@
             };
 
             recognition.onerror = function(event) {
-                console.log("Speech recognition error:", event.error);
                 if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
-                // 排除並非真正失敗的 busy 狀態
                 if(event.error !== 'no-speech') {
                     stopSpeechRecognition();
                     document.getElementById("lbl-status-text").className = "status-msg";
@@ -665,26 +709,27 @@
             if(item) playTTS(item.audioText || item.text);
         });
 
-        // 【功能修改 3】：優化提示卡渲染樣式與間距，並輸出音檔的「整句中文意思」
+        // 【功能修改 3】：提示卡新增量詞中文意思支援
         document.getElementById("btn-hint-toggle").addEventListener("click", () => {
             const box = document.getElementById("hint-text-box");
             if(box.classList.contains("hidden")) {
                 const item = currentQueue[currentIndex];
-                let quant = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || "개" : "개";
+                let targetUnitOfItem = item.unit || currentUnit;
+                
+                let quantObj = window.UnitQuantifiers ? window.UnitQuantifiers[item.text] || {ko:"개", zh:"個"} : {ko:"개", zh:"個"};
                 
                 let ruleStr = "";
-                if(currentUnit === 1) ruleStr = hasBatchim(item.text) ? "子音 (有收音) + 이 있어요/이 없어요" : "母音 (無收音) + 가 있어요/가 없어요";
-                else if(currentUnit === 2) ruleStr = hasBatchim(quant) ? "量詞末字子音 (有收音) + 이 있어요" : "量詞末字母音 (無收音) + 가 있어요";
-                else if(currentUnit === 3) ruleStr = "名詞後面直接連接固定請託句型 + 주세요 (請給我...)";
+                if(targetUnitOfItem === 1) ruleStr = hasBatchim(item.text) ? "名詞末字有尾音 + 이 있어요/없어요" : "名詞末字無尾音 + 가 있어요/없어요";
+                else if(targetUnitOfItem === 2) ruleStr = `名詞 + 固有數詞變形 + 量詞 [${quantObj.ko}] + ${hasBatchim(quantObj.ko) ? "이" : "가"} 있어요`;
+                else if(targetUnitOfItem === 3) ruleStr = "名詞 + 주세요 (請給我...)";
 
-                // 利用網頁樣式排版，拉開行高與段落落差
                 box.innerHTML = `
                     <p>💡 <b>中文意思</b>：<br><span style="color:#2563eb; font-weight:bold;">${item.fullChinese || item.chinese}</span></p>
-                    <p>📐 <b>語法規則解析</b>：<br><span style="color:#059669; font-weight:500;">${ruleStr}</span></p>
+                    <p>📐 <b>語法與量詞規則</b>：<br><span style="color:#059669; font-weight:500;">單字對應量詞：${quantObj.ko} (${quantObj.zh})<br>規則：${ruleStr}</span></p>
                 `;
                 box.classList.remove("hidden");
             } else { box.classList.add("hidden"); }
         });
     </script>
 </body>
-</html>ㄎ
+</html>
