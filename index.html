@@ -173,7 +173,7 @@
         /*************************************************************
          * 1. Supabase 初始化連接設定
          *************************************************************/
-        const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co/"; 
+        const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4";
         
         const supabase = (SUPABASE_URL === "請放入你的Supabase專案URL") ? null : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
