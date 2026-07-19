@@ -228,85 +228,11 @@
         </div>
     </div>
 
+    <!-- 🌟 重點 1：先在這裡載入獨立的單字資料庫 🌟 -->
+    <script src="words.js"></script>
+
+    <!-- 🌟 重點 2：這裡保留了主程式核心邏輯（裡面已經把原本重複的資料拿掉了） 🌟 -->
     <script>
-        /*************************************************************
-         * 1. 資料架構與動態生成邏輯 (原 words.js 概念)
-         *************************************************************/
-        // 基礎原始素材
-        const rawMaterials = {
-            1: {
-                words: ["짐", "볼펜", "담요", "휴지", "시계", "지우개", "컴퓨터", "라면", "콜라", "지갑", "커피", "메뉴", "우산"],
-                sentences: [] // 由單字與 이/가 있어요/없어요 動態組裝
-            },
-            2: {
-                words: ["하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "손님", "정장", "맥주", "잡지", "여권", "핸드폰", "옷"],
-                sentences: [] // 由固有數字與量詞動態組裝
-            },
-            3: {
-                words: ["반찬", "홍차", "빵"],
-                sentences: ["반찬 주세요", "홍차 주세요", "빵 주세요"]
-            }
-        };
-
-        // 韓文收音判斷（用於單元一的 이/가）
-        function hasBatchim(word) {
-            const lastChar = word.charCodeAt(word.length - 1);
-            if (lastChar < 0xAC00 || lastChar > 0xD7A3) return false; // 非韓文
-            return (lastChar - 0xAC00) % 28 !== 0;
-        }
-
-        // 固有數字變體轉換（用於量詞前）
-        function getNumAttr(numStr) {
-            const mapping = {
-                "하나": "한", "둘": "두", "셋": "세", "넷": "네", "다섯": "다섯",
-                "여섯": "여섯", "일곱": "일곱", "여덟": "여덟", "아홉": "아홉", "열": "열"
-            };
-            return mapping[numStr] || numStr;
-        }
-
-        // 動態初始化題庫總庫
-        function generateDatabase() {
-            let db = [];
-            let idCounter = 1;
-
-            // --- 單元一 生成 ---
-            rawMaterials[1].words.forEach(w => {
-                db.push({ id: idCounter++, unit: 1, type: 'word', text: w, learned: false, isFluent: false });
-                // 隨機組裝 이/가 있어요 / 없어요
-                const particle = hasBatchim(w) ? "이" : "가";
-                db.push({ id: idCounter++, unit: 1, type: 'sentence', text: `${w}${particle} 있어요`, learned: false, isFluent: false });
-                db.push({ id: idCounter++, unit: 1, type: 'sentence', text: `${w}${particle} 없어요`, learned: false, isFluent: false });
-            });
-
-            // --- 單元二 生成 ---
-            rawMaterials[2].words.forEach(w => {
-                db.push({ id: idCounter++, unit: 2, type: 'word', text: w, learned: false, isFluent: false });
-            });
-            // 隨機排列組合固有數字練習
-            const unit2Nouns = ["손님", "정장", "맥주", "잡지", "여권", "핸드폰", "옷", "커피", "콜라", "라면"];
-            const counters = ["개", "명", "잔", "벌", "병", "마리", "조각", "권", "대", "켤레"];
-            const numbers = ["하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열"];
-            
-            // 產生一些隨機合理的量詞組合填入句型庫
-            for(let i=0; i<20; i++) {
-                const randNoun = unit2Nouns[Math.floor(Math.random() * unit2Nouns.length)];
-                const randNum = numbers[Math.floor(Math.random() * numbers.length)];
-                const randCounter = counters[Math.floor(Math.random() * counters.length)];
-                const combinedText = `${randNoun} ${getNumAttr(randNum)} ${randCounter}`;
-                db.push({ id: idCounter++, unit: 2, type: 'sentence', text: combinedText, learned: false, isFluent: false });
-            }
-
-            // --- 單元三 生成 ---
-            rawMaterials[3].words.forEach(w => {
-                db.push({ id: idCounter++, unit: 3, type: 'word', text: w, learned: false, isFluent: false });
-            });
-            rawMaterials[3].sentences.forEach(s => {
-                db.push({ id: idCounter++, unit: 3, type: 'sentence', text: s, learned: false, isFluent: false });
-            });
-
-            return db;
-        }
-
         /*************************************************************
          * 2. 狀態管理 (LocalStorage 持久化)
          *************************************************************/
@@ -326,6 +252,7 @@
                 wordsDatabase = JSON.parse(savedDB);
                 userProgress = JSON.parse(savedProg);
             } else {
+                // generateDatabase() 函數定義在 words.js 裡面，因為前面引入了，這裡可以直接調用
                 wordsDatabase = generateDatabase();
                 saveState();
             }
@@ -345,11 +272,6 @@
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[i Flyweights], array[j], array[i]] = [array[j], array[i]]; // 更正結構賦值語法
-            }
-            // 修正上方小手誤：
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
                 const temp = array[i];
                 array[i] = array[j];
                 array[j] = temp;
@@ -359,33 +281,27 @@
 
         // 動態生成關卡題庫佇列 (70% 新內容, 30% 歷史不熟)
         function generateQuizQueue(unit, stageType) {
-            // 映射 stageType: 1&3 都用到題目的基礎池。1為word，2、3皆為sentence
             const itemType = (stageType === 1) ? 'word' : 'sentence';
 
-            // 1. 篩選全池子
             const newPool = wordsDatabase.filter(item => item.unit === unit && item.type === itemType && !item.learned);
             const historyPool = wordsDatabase.filter(item => item.unit < unit && item.type === itemType && !item.isFluent);
 
-            let newTargetCount = Math.round(TOTAL_QUESTIONS * 0.7); // 7 題
-            let histTargetCount = TOTAL_QUESTIONS - newTargetCount;  // 3 題
+            let newTargetCount = Math.round(TOTAL_QUESTIONS * 0.7); 
+            let histTargetCount = TOTAL_QUESTIONS - newTargetCount;  
 
             let selectedNew = [];
             let selectedHist = [];
 
-            // 2. 抽取歷史不熟材料
             shuffle(historyPool);
             selectedHist = historyPool.slice(0, histTargetCount);
 
-            // 例外安全處理：如果歷史不熟不足 30%
             if (selectedHist.length < histTargetCount) {
                 newTargetCount += (histTargetCount - selectedHist.length);
             }
 
-            // 3. 抽取新材料
             shuffle(newPool);
             selectedNew = newPool.slice(0, newTargetCount);
 
-            // 例外安全處理：如果新內容仍不足補滿總數 T，反向從歷史池或已學池撈取
             let combined = [...selectedNew, ...selectedHist];
             if (combined.length < TOTAL_QUESTIONS) {
                 const backupPool = wordsDatabase.filter(item => item.type === itemType && !combined.includes(item));
@@ -394,17 +310,15 @@
                 combined = combined.concat(backupPool.slice(0, needed));
             }
 
-            // 最終打亂大洗牌
             return shuffle(combined.slice(0, TOTAL_QUESTIONS));
         }
 
         /*************************************************************
          * 4. 語音技術與判定 (TTS 與 Web Speech API)
          *************************************************************/
-        // TTS 發音導讀
         function playTTS(text) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // 停止之前的聲音
+                window.speechSynthesis.cancel(); 
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ko-KR';
                 window.speechSynthesis.speak(utterance);
@@ -413,17 +327,15 @@
             }
         }
 
-        // Web Speech API 語音辨識初始化
         let recognition = null;
         if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
-            recognition.lang = 'ko-KR'; // 嚴格設定為韓語語系
+            recognition.lang = 'ko-KR'; 
             recognition.continuous = false;
             recognition.interimResults = false;
         }
 
-        // 標點符號清除與小寫正規化處理
         function cleanText(str) {
             return str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
         }
@@ -454,7 +366,6 @@
         }
 
         function startStage() {
-            // 超出最大單元防呆
             if (userProgress.currentUnit > 3) {
                 alert("恭喜！您已通關目前所有的韓語單元！系統將為您重置回第一單元。");
                 userProgress.currentUnit = 1;
@@ -463,7 +374,6 @@
                 saveState();
             }
 
-            // 更新 UI 頂部標示
             elUnitTitle.innerText = `單元 ${userProgress.currentUnit}`;
             document.querySelectorAll(".stage-dot").forEach((dot, index) => {
                 dot.classList.remove("active");
@@ -472,7 +382,6 @@
                 }
             });
 
-            // 依據關卡切換操作面板
             if (userProgress.currentStage === 3) {
                 elNormalActions.classList.add("hidden");
                 elSpeakingActions.classList.remove("hidden");
@@ -484,7 +393,6 @@
             elSpeakingStatus.className = "speaking-status";
             elSpeakingStatus.innerText = "";
 
-            // 生成當前關卡題庫佇列
             currentQueue = generateQuizQueue(userProgress.currentUnit, userProgress.currentStage);
             currentIndex = 0;
             renderCard();
@@ -499,12 +407,10 @@
             const currentItem = currentQueue[currentIndex];
             elTargetText.innerText = currentItem.text;
             
-            // 顯示提示標籤
             let typeLabel = currentItem.type === 'word' ? '單字' : '句型';
             let historyLabel = currentItem.unit < userProgress.currentUnit ? ' (歷史複習)' : '';
             elTargetHint.innerText = `類型：${typeLabel}${historyLabel}`;
 
-            // 更新進度條
             const percentage = (currentIndex / currentQueue.length) * 100;
             elProgressBar.style.width = `${percentage}%`;
             
@@ -512,7 +418,6 @@
             elSpeakingStatus.innerText = "";
         }
 
-        // 關卡進階流程驅動器
         function nextStageDriver() {
             elProgressBar.style.width = "100%";
             if (userProgress.currentStage === 1) {
@@ -524,13 +429,12 @@
             } else if (userProgress.currentStage === 3) {
                 alert("🏆 太棒了！口說關卡全數通過！恭喜晉級下一個單元！");
                 userProgress.currentUnit++;
-                userProgress.currentStage = 1; // 重置回單字關卡
+                userProgress.currentStage = 1; 
             }
             saveState();
             startStage();
         }
 
-        // 更新資料庫狀態
         function updateItemStatus(item, isCorrect) {
             const dbItem = wordsDatabase.find(d => d.id === item.id);
             if (dbItem) {
@@ -546,13 +450,11 @@
         /*************************************************************
          * 6. 事件監聽設定
          *************************************************************/
-        // 發音導讀按鈕
         elBtnTTS.addEventListener("click", () => {
             const currentItem = currentQueue[currentIndex];
             if (currentItem) playTTS(currentItem.text);
         });
 
-        // 關卡 1 & 2「我知道了」按鈕
         elBtnKnow.addEventListener("click", () => {
             const currentItem = currentQueue[currentIndex];
             updateItemStatus(currentItem, true);
@@ -560,7 +462,6 @@
             renderCard();
         });
 
-        // 關卡 3「開始口說」辨識監聽
         if (recognition) {
             elBtnMic.addEventListener("click", () => {
                 elSpeakingStatus.className = "speaking-status status-listening";
@@ -578,13 +479,11 @@
                 console.log(`識別結果: ${userSpeech} (處理後: ${cleanedUser})`);
                 console.log(`正確目標: ${currentItem.text} (處理後: ${cleanedTarget})`);
 
-                // 字串完全比對判定
                 if (cleanedUser === cleanedTarget) {
                     elSpeakingStatus.className = "speaking-status status-success";
                     elSpeakingStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> 答對了！辨識結果："${userSpeech}"`;
                     
                     updateItemStatus(currentItem, true);
-                    // 答對延遲一秒自動進入下一題
                     setTimeout(() => {
                         currentIndex++;
                         renderCard();
@@ -605,15 +504,13 @@
             });
         }
 
-        // 關卡 3「跳過此題」按鈕
         elBtnSkip.addEventListener("click", () => {
             const currentItem = currentQueue[currentIndex];
-            updateItemStatus(currentItem, false); // 未過關，不更新 isFluent
+            updateItemStatus(currentItem, false); 
             currentIndex++;
             renderCard();
         });
 
-        // 啟動應用程式
         window.addEventListener("DOMContentLoaded", initApp);
     </script>
 </body>
