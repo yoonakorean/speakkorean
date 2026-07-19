@@ -175,122 +175,156 @@
          *************************************************************/
         const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; 
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4";
-        
-        const supabase = (SUPABASE_URL === "請放入你的Supabase專案URL") ? null : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let user = ""; 
-        let userScores = {
-            xp: 0, loginDays: 1, maxUnlockedUnit: 1, maxUnlockedStage: 1,
-            wordScores: 0, grammarScores: 0, challengeScores: 0,
-            wordStreaks: {}, wrongWordsBuffer: []
+// 使用 db 作為雲端連線變數，避開與全域 supabase 物件衝突
+let db = null;
+if (SUPABASE_URL && SUPABASE_URL !== "請放入你的Supabase專案URL") {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+let user = ""; 
+let userScores = {
+    xp: 0, loginDays: 1, maxUnlockedUnit: 1, maxUnlockedStage: 1,
+    wordScores: 0, grammarScores: 0, challengeScores: 0,
+    wordStreaks: {}, wrongWordsBuffer: []
+};
+
+// 題目與遊戲引擎參數
+let currentUnit = 1;
+let currentStage = 1; 
+let currentQueue = [];
+let currentIndex = 0;
+let comboCount = 0;
+let hp = 3;
+
+let stage3Timer = null;
+let currentStage3TimeLeft = 10;
+let micSafetyTimer = null; 
+let isAnsweredState = false; 
+let wordRoundCorrectCount = 0; 
+let isWrongAnsweringState = false;
+
+/*************************************************************
+ * 2. 註冊與登入核心邏輯 (完全相容 db 變數)
+ *************************************************************/
+// 【註冊功能】：防止重複暱稱，寫入 Supabase 雲端
+document.getElementById("btn-register").addEventListener("click", async () => {
+    const uInput = document.getElementById("username-input").value.trim();
+    const pInput = document.getElementById("password-input").value.trim();
+    if(!uInput || !pInput) { alert("請輸入完整的暱稱與密碼！"); return; }
+
+    if(!db) {
+        alert("⚠️ 您尚未成功設定 Supabase API Key。系統切換為本地模擬註冊。");
+        let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
+        if(localDB[uInput]) { alert("❌ 此暱稱已被註冊，請換一個名字！"); return; }
+        localDB[uInput] = { password: pInput, xp:0, loginDays: Math.floor(Math.random()*4)+1, maxUnlockedUnit:1, maxUnlockedStage:1, wordScores:0, grammarScores:0, challengeScores:0, wordStreaks:{} };
+        localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
+        alert("🎉 本地模擬註冊成功！請點擊立即登入。");
+        return;
+    }
+
+    try {
+        // 1. 前往雲端檢查帳號是否重複
+        const { data, error } = await db.from('students').select('username').eq('username', uInput).maybeSingle();
+        if (error && error.code !== 'PGRST116') { // PGRST116 代表找不到資料，是正常的
+            alert("資料庫查詢失敗: " + error.message);
+            return;
+        }
+        if(data) { alert("❌ 此暱稱已被他人註冊，請換一個名字！"); return; }
+
+        // 2. 寫入雲端資料庫
+        const { error: insError } = await db.from('students').insert([{
+            username: uInput, 
+            password: pInput, 
+            login_days: Math.floor(Math.random() * 4) + 1
+        }]);
+
+        if(insError) { 
+            alert("註冊失敗：" + insError.message); 
+        } else { 
+            alert("🎉 雲端帳號註冊成功！請直接輸入相同的暱稱與密碼，點擊「立即登入」。"); 
+        }
+    } catch(e) {
+        alert("註冊發生非預期錯誤：" + e.message);
+    }
+});
+
+// 【登入功能】
+document.getElementById("btn-login").addEventListener("click", async () => {
+    const uInput = document.getElementById("username-input").value.trim();
+    const pInput = document.getElementById("password-input").value.trim();
+    if(!uInput || !pInput) { alert("請輸入暱稱與密碼！"); return; }
+
+    if(!db) {
+        let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
+        if(!localDB[uInput] || localDB[uInput].password !== pInput) { alert("❌ 帳號或密碼錯誤！"); return; }
+        bindUserData(uInput, localDB[uInput]);
+        return;
+    }
+
+    try {
+        // 雲端資料庫驗證登入
+        const { data, error } = await db.from('students').select('*').eq('username', uInput).maybeSingle();
+        if(error) { alert("登入查詢失敗: " + error.message); return; }
+        if(!data || data.password !== pInput) { alert("❌ 暱稱不存在或密碼輸入錯誤！"); return; }
+        
+        // 轉換雲端欄位對應至網頁變數
+        let mappedData = {
+            xp: data.xp || 0, 
+            loginDays: data.login_days || 1, 
+            maxUnlockedUnit: data.max_unlocked_unit || 1,
+            maxUnlockedStage: data.max_unlocked_stage || 1, 
+            wordScores: data.word_scores || 0,
+            grammarScores: data.grammar_scores || 0, 
+            challengeScores: data.challenge_scores || 0,
+            wordStreaks: data.word_streaks || {}, 
+            wrongWordsBuffer: []
         };
+        bindUserData(uInput, mappedData);
+    } catch(e) {
+        alert("登入發生非預期錯誤：" + e.message);
+    }
+});
 
-        // 題目與遊戲引擎參數
-        let currentUnit = 1;
-        let currentStage = 1; 
-        let currentQueue = [];
-        let currentIndex = 0;
-        let comboCount = 0;
-        let hp = 3;
-        
-        let stage3Timer = null;
-        let currentStage3TimeLeft = 10;
-        let micSafetyTimer = null; 
-        let isAnsweredState = false; // 用於判定「作答完後才出現提示卡」
-        let wordRoundCorrectCount = 0; // 紀錄一輪10題中答對了幾題
+function bindUserData(username, dataObj) {
+    user = username;
+    userScores = dataObj;
+    document.getElementById("login-modal").classList.add("hidden");
+    document.getElementById("main-app").classList.remove("hidden");
+    document.getElementById("lbl-username").innerText = user;
+    document.getElementById("lbl-login-days").innerText = userScores.loginDays;
+    updateXPDisplay();
 
-        /*************************************************************
-         * 2. 註冊與登入核心邏輯 (串接 Supabase / 本地 RLS)
-         *************************************************************/
-        // 【功能新增】：註冊功能，防止重複暱稱
-        document.getElementById("btn-register").addEventListener("click", async () => {
-            const uInput = document.getElementById("username-input").value.trim();
-            const pInput = document.getElementById("password-input").value.trim();
-            if(!uInput || !pInput) { alert("請輸入完整的暱稱與密碼！"); return; }
+    document.addEventListener("visibilitychange", () => { if (document.hidden) stopSpeechRecognition(); });
+    loadStage(userScores.maxUnlockedUnit, userScores.maxUnlockedStage);
+}
 
-            if(!supabase) {
-                alert("⚠️ 您尚未設定 Supabase API Key。系統切換為本地模擬註冊。");
-                let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-                if(localDB[uInput]) { alert("❌ 此暱稱已被註冊，請換一個名字！"); return; }
-                localDB[uInput] = { password: pInput, xp:0, loginDays: Math.floor(Math.random()*4)+1, maxUnlockedUnit:1, maxUnlockedStage:1, wordScores:0, grammarScores:0, challengeScores:0, wordStreaks:{} };
-                localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
-                alert("🎉 註冊成功！請點擊立即登入。");
-                return;
-            }
-
-            // 雲端查詢是否暱稱重複
-            const { data, error } = await supabase.from('students').select('username').eq('username', uInput).maybeSingle();
-            if(data) { alert("❌ 此暱稱已被他人註冊，請換一個名字！"); return; }
-
-            // 寫入雲端資料庫
-            const { error: insError } = await supabase.from('students').insert([{
-                username: uInput, password: pInput, login_days: Math.floor(Math.random() * 4) + 1
-            }]);
-
-            if(insError) { alert("註冊失敗：" + insError.message); } 
-            else { alert("🎉 雲端帳號註冊成功！請直接點擊「立即登入」。"); }
-        });
-
-        // 登入功能
-        document.getElementById("btn-login").addEventListener("click", async () => {
-            const uInput = document.getElementById("username-input").value.trim();
-            const pInput = document.getElementById("password-input").value.trim();
-            if(!uInput || !pInput) { alert("請輸入暱稱與密碼！"); return; }
-
-            if(!supabase) {
-                let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-                if(!localDB[uInput] || localDB[uInput].password !== pInput) { alert("❌ 帳號或密碼錯誤！"); return; }
-                bindUserData(uInput, localDB[uInput]);
-                return;
-            }
-
-            // 雲端資料庫驗證登入
-            const { data, error } = await supabase.from('students').select('*').eq('username', uInput).maybeSingle();
-            if(!data || data.password !== pInput) { alert("❌ 暱稱不存在或密碼輸入錯誤！"); return; }
-            
-            // 轉換雲端欄位對應格式
-            let mappedData = {
-                xp: data.xp, loginDays: data.login_days, maxUnlockedUnit: data.max_unlocked_unit,
-                maxUnlockedStage: data.max_unlocked_stage, wordScores: data.word_scores,
-                grammarScores: data.grammar_scores, challengeScores: data.challenge_scores,
-                wordStreaks: data.word_streaks || {}, wrongWordsBuffer: []
-            };
-            bindUserData(uInput, mappedData);
-        });
-
-        function bindUserData(username, dataObj) {
-            user = username;
-            userScores = dataObj;
-            document.getElementById("login-modal").classList.add("hidden");
-            document.getElementById("main-app").classList.remove("hidden");
-            document.getElementById("lbl-username").innerText = user;
-            document.getElementById("lbl-login-days").innerText = userScores.loginDays;
-            updateXPDisplay();
-
-            document.addEventListener("visibilitychange", () => { if (document.hidden) stopSpeechRecognition(); });
-            loadStage(userScores.maxUnlockedUnit, userScores.maxUnlockedStage);
+// 【即時存檔功能】：將最新分數與進度寫回雲端
+async function saveToRemote() {
+    if(!user) return;
+    if(!db) {
+        let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
+        if(localDB[user]) {
+            Object.assign(localDB[user], userScores);
+            localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
         }
+        return;
+    }
+    
+    await db.from('students').update({
+        xp: userScores.xp, 
+        max_unlocked_unit: userScores.maxUnlockedUnit,
+        max_unlocked_stage: userScores.maxUnlockedStage, 
+        word_scores: userScores.wordScores,
+        grammar_scores: userScores.grammarScores, 
+        challenge_scores: userScores.challengeScores,
+        word_streaks: userScores.wordStreaks
+    }).eq('username', user);
+}
 
-        async function saveToRemote() {
-            if(!user) return;
-            if(!supabase) {
-                let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-                if(localDB[user]) {
-                    Object.assign(localDB[user], userScores);
-                    localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
-                }
-                return;
-            }
-            // 非同步即時寫入 Supabase 雲端
-            await supabase.from('students').update({
-                xp: userScores.xp, max_unlocked_unit: userScores.maxUnlockedUnit,
-                max_unlocked_stage: userScores.maxUnlockedStage, word_scores: userScores.wordScores,
-                grammar_scores: userScores.grammarScores, challenge_scores: userScores.challengeScores,
-                word_streaks: userScores.wordStreaks
-            }).eq('username', user);
-        }
-
-        function updateXPDisplay() { document.getElementById("lbl-xp").innerText = userScores.xp; }
+function updateXPDisplay() { 
+    document.getElementById("lbl-xp").innerText = userScores.xp; 
+}
 
         /*************************************************************
          * 3. 排行榜 (雲端即時連動獲取)
