@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>韓語雲端遊戲化學習系統</title>
+    <title>韓語雲端遊戲化學習系統 - 智慧重構版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 引入 Supabase 官方 CDN 瀏覽器套件 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -24,13 +23,11 @@
         
         .container { width: 100%; max-width: 650px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); padding: 30px; position: relative; }
         
-        /* 頂部資訊列 */
         .user-meta-bar { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; background: #e0e7ff; padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; color: var(--primary-hover); font-weight: 600; }
         .mode-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; color: #fff; font-weight: bold; }
         .mode-practice { background: var(--success); }
         .mode-challenge { background: var(--danger); }
 
-        /* 導覽列 */
         .header { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px; }
         .top-row { display: flex; justify-content: space-between; align-items: center; }
         .unit-selector { display: flex; align-items: center; gap: 8px; cursor: pointer; background: #f3f4f6; padding: 6px 14px; border-radius: 8px; font-weight: bold; }
@@ -39,44 +36,40 @@
         .stage-dot.active { background: var(--primary); color: #fff; }
         .stage-dot.locked { opacity: 0.4; cursor: not-allowed; }
 
-        /* 進度條與特殊計量器 */
         .progress-bar-container { width: 100%; background: #e5e7eb; height: 10px; border-radius: 5px; margin-bottom: 20px; overflow: hidden; position: relative; }
         .progress-bar { height: 100%; background: var(--success); width: 0%; transition: width 0.3s ease; }
-        .hp-container { display: flex; gap: 5px; font-size: 1.3rem; color: var(--danger); }
-        .timer-countdown { font-size: 1.2rem; font-weight: bold; color: var(--danger); display: flex; align-items: center; gap: 5px; }
 
-        /* 核心卡片區 */
-        .card-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 25px; min-height: 200px; }
-        .combo-badge { background: linear-gradient(45deg, #f59e0b, #ef4444); color: white; padding: 4px 15px; border-radius: 50px; font-weight: bold; font-size: 1rem; margin-bottom: 10px; }
+        .card-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 25px; min-height: 220px; }
         .target-display { font-size: 2.2rem; font-weight: 700; color: #111827; margin-bottom: 15px; word-break: break-all; }
         
-        /* 選擇題選項 */
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 10px; }
         .option-btn { background: #f9fafb; border: 2px solid #e5e7eb; padding: 14px; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
         .option-btn:hover { background: #f3f4f6; border-color: #cbd5e1; }
         
-        /* 智慧錯題與提示 */
+        /* 字塊拼圖專用樣式 */
+        .puzzle-workspace { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; min-height: 55px; background: #f9fafb; border: 2px dashed #cbd5e1; padding: 10px; border-radius: 12px; margin-bottom: 15px; }
+        .puzzle-blocks-pool { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; margin-top: 10px; }
+        .puzzle-block { background: white; border: 2px solid #cbd5e1; padding: 10px 18px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.05); transition: all 0.2s; user-select: none; }
+        .puzzle-block:hover { border-color: var(--primary); background: #f5f3ff; }
+        .puzzle-block.selected { opacity: 0.4; cursor: default; background: #e5e7eb; }
+
         .hint-box { background: #fee2e2; border-left: 4px solid var(--danger); color: #b91c1c; padding: 12px; border-radius: 8px; font-weight: 600; margin-top: 15px; text-align: left; width: 100%; }
         .hint-btn-trigger { background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; font-size: 0.95rem; text-decoration: underline; margin-top: 5px; }
 
-        /* 底部控制 */
-        .status-msg { margin-top: 15px; font-weight: bold; text-align: center; min-height: 24px; }
-        .listening-active { color: var(--primary); animation: pulse 1.5s infinite; }
-        .btn-action-row { display: flex; gap: 10px; width: 100%; margin-top: 15px; }
+        .status-msg { margin-top: 15px; font-weight: bold; text-align: center; min-height: 24px; font-size: 1.1rem; }
+        .listening-active { color: var(--danger); animation: pulse 1.2s infinite; font-size: 1.2rem; background: #fef2f2; padding: 6px 12px; border-radius: 8px; }
 
-        button.base-btn { width: 100%; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+        button.base-btn { width: 100%; padding: 14px; font-size: 1.1rem; font-weight: bold; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-success { background: var(--success); color: white; }
         .btn-secondary { background: #e5e7eb; color: #4b5563; }
         
-        /* 模態視窗 */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         .modal-content h3 { margin-bottom: 15px; color: var(--primary); font-size: 1.4rem; }
         .modal-content input { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; }
         
-        /* 排行榜分頁 */
         .rank-tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; }
         .rank-tab { flex: 1; padding: 8px 4px; font-size: 0.85rem; font-weight: bold; border: none; background: #e5e7eb; border-radius: 6px; cursor: pointer; }
         .rank-tab.active { background: var(--primary); color: white; }
@@ -84,7 +77,7 @@
         .rank-item { display: flex; justify-content: space-between; padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-size: 0.95rem; }
 
         .hidden { display: none !important; }
-        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -94,10 +87,8 @@
         <div class="modal-content">
             <h3><i class="fa-solid fa-cloud"></i> 雲端韓語大冒險</h3>
             <p style="font-size: 0.9rem; color:#6b7280; margin-bottom: 15px;">註冊新帳號或直接登入，全台裝置同步進度！</p>
-            
             <input type="text" id="username-input" placeholder="請輸入使用者暱稱" required />
             <input type="password" id="password-input" placeholder="請輸入密碼" required />
-            
             <div style="display:flex; gap: 10px; margin-top: 5px;">
                 <button class="base-btn btn-primary" id="btn-login">立即登入</button>
                 <button class="base-btn btn-secondary" id="btn-register" style="background:#cbd5e1;">註冊帳號</button>
@@ -108,7 +99,7 @@
     <!-- 2. 排行榜視窗 -->
     <div class="modal hidden" id="rank-modal">
         <div class="modal-content">
-            <h3><i class="fa-solid fa-trophy" style="color: #f59e0b;"></i> 全球榮譽排行榜 (雲端同步)</h3>
+            <h3><i class="fa-solid fa-trophy" style="color: #f59e0b;"></i> 全球榮譽排行榜</h3>
             <div class="rank-tabs">
                 <button class="rank-tab active" data-type="word">單字勤奮榜</button>
                 <button class="rank-tab" data-type="grammar">語法大師榜</button>
@@ -135,14 +126,13 @@
                 </div>
                 <div class="stages-indicator">
                     <span class="stage-dot" id="dot-s1" data-stage="1">階段 1: 單字</span>
-                    <span class="stage-dot" id="dot-s2" data-stage="2">階段 2: 語法</span>
-                    <span class="stage-dot" id="dot-s3" data-stage="3">階段 3: 挑戰</span>
+                    <span class="stage-dot" id="dot-s2" data-stage="2">階段 2: 聽音拼字</span>
+                    <span class="stage-dot" id="dot-s3" data-stage="3">階段 3: 盲聽挑戰</span>
                 </div>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span id="lbl-mode-text" class="mode-badge mode-practice">練習模式</span>
-                <div class="hp-container hidden" id="hp-box"></div>
-                <div class="timer-countdown hidden" id="timer-box"><i class="fa-solid fa-clock"></i> <span id="lbl-timer">10</span>s</div>
+                <span id="lbl-score-counter" style="font-weight: bold; font-size: 0.95rem; color: var(--primary);">進度: 0 / 0</span>
             </div>
         </div>
 
@@ -151,260 +141,175 @@
         </div>
 
         <div class="card-content">
-            <div class="combo-badge hidden" id="combo-box">5 Combo 🔥</div>
             <div class="target-display" id="lbl-target-text">안녕하세요</div>
             
-            <!-- 提示按鈕修正：預設隱藏，作答完才視情況出現 -->
+            <!-- 字塊拼圖專用工作區 -->
+            <div class="puzzle-workspace hidden" id="puzzle-work-zone"></div>
+            <div class="puzzle-blocks-pool hidden" id="puzzle-pool-zone"></div>
+
+            <!-- 選擇題區 -->
+            <div class="options-grid hidden" id="quiz-options-container"></div>
+            
             <button class="hint-btn-trigger hidden" id="btn-hint-toggle"><i class="fa-solid fa-lightbulb"></i> 點選提示卡</button>
             <div class="hint-box hidden" id="hint-text-box">提示內容</div>
 
-            <div class="options-grid hidden" id="quiz-options-container"></div>
             <div class="status-msg" id="lbl-status-text"></div>
         </div>
 
-        <div class="btn-action-row">
-            <button class="base-btn btn-secondary" id="btn-tts"><i class="fa-solid fa-volume-high"></i> 發音導讀</button>
-            <button class="base-btn btn-success hidden" id="btn-forced-mic"><i class="fa-solid fa-microphone"></i> 點擊麥克風跟讀</button>
+        <div style="margin-top: 10px;">
+            <button class="base-btn btn-primary hidden" id="btn-next-flow">繼續 <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+
+        <div class="btn-action-row" id="action-voice-row" style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="base-btn btn-secondary" id="btn-tts"><i class="fa-solid fa-volume-high"></i> 播放聲音</button>
         </div>
     </div>
 
     <script src="words.js"></script>
     <script>
-   /*************************************************************
- * 1. Supabase 初始化連接設定（已修復全域變數衝突）
- *************************************************************/
-const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; // 已移除了結尾的斜線
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4"; // 請保持你原本貼的那串很長的金鑰
-
-// 使用 db 作為雲端連線變數，避開與全域 supabase 物件衝突
-let db = null;
-if (SUPABASE_URL && SUPABASE_URL !== "請放入你的Supabase專案URL") {
-    db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
-
-let user = ""; 
-let userScores = {
-    xp: 0, loginDays: 1, maxUnlockedUnit: 1, maxUnlockedStage: 1,
-    wordScores: 0, grammarScores: 0, challengeScores: 0,
-    wordStreaks: {}, wrongWordsBuffer: []
-};
-
-// 題目與遊戲引擎參數
-let currentUnit = 1;
-let currentStage = 1; 
-let currentQueue = [];
-let currentIndex = 0;
-let comboCount = 0;
-let hp = 3;
-
-let stage3Timer = null;
-let currentStage3TimeLeft = 10;
-let micSafetyTimer = null; 
-let isAnsweredState = false; 
-let wordRoundCorrectCount = 0; 
-let isWrongAnsweringState = false;
-
-/*************************************************************
- * 2. 註冊與登入核心邏輯 (完全相容 db 變數)
- *************************************************************/
-// 【註冊功能】：防止重複暱稱，寫入 Supabase 雲端
-document.getElementById("btn-register").addEventListener("click", async () => {
-    const uInput = document.getElementById("username-input").value.trim();
-    const pInput = document.getElementById("password-input").value.trim();
-    if(!uInput || !pInput) { alert("請輸入完整的暱稱與密碼！"); return; }
-
-    if(!db) {
-        alert("⚠️ 您尚未成功設定 Supabase API Key。系統切換為本地模擬註冊。");
-        let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-        if(localDB[uInput]) { alert("❌ 此暱稱已被註冊，請換一個名字！"); return; }
-        localDB[uInput] = { password: pInput, xp:0, loginDays: Math.floor(Math.random()*4)+1, maxUnlockedUnit:1, maxUnlockedStage:1, wordScores:0, grammarScores:0, challengeScores:0, wordStreaks:{} };
-        localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
-        alert("🎉 本地模擬註冊成功！請點擊立即登入。");
-        return;
-    }
-
-    try {
-        // 1. 前往雲端檢查帳號是否重複
-        const { data, error } = await db.from('students').select('username').eq('username', uInput).maybeSingle();
-        if (error && error.code !== 'PGRST116') { // PGRST116 代表找不到資料，是正常的
-            alert("資料庫查詢失敗: " + error.message);
-            return;
-        }
-        if(data) { alert("❌ 此暱稱已被他人註冊，請換一個名字！"); return; }
-
-        // 2. 寫入雲端資料庫
-        const { error: insError } = await db.from('students').insert([{
-            username: uInput, 
-            password: pInput, 
-            login_days: Math.floor(Math.random() * 4) + 1
-        }]);
-
-        if(insError) { 
-            alert("註冊失敗：" + insError.message); 
-        } else { 
-            alert("🎉 雲端帳號註冊成功！請直接輸入相同的暱稱與密碼，點擊「立即登入」。"); 
-        }
-    } catch(e) {
-        alert("註冊發生非預期錯誤：" + e.message);
-    }
-});
-
-// 【登入功能】
-document.getElementById("btn-login").addEventListener("click", async () => {
-    const uInput = document.getElementById("username-input").value.trim();
-    const pInput = document.getElementById("password-input").value.trim();
-    if(!uInput || !pInput) { alert("請輸入暱稱與密碼！"); return; }
-
-    if(!db) {
-        let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-        if(!localDB[uInput] || localDB[uInput].password !== pInput) { alert("❌ 帳號或密碼錯誤！"); return; }
-        bindUserData(uInput, localDB[uInput]);
-        return;
-    }
-
-    try {
-        // 雲端資料庫驗證登入
-        const { data, error } = await db.from('students').select('*').eq('username', uInput).maybeSingle();
-        if(error) { alert("登入查詢失敗: " + error.message); return; }
-        if(!data || data.password !== pInput) { alert("❌ 暱稱不存在或密碼輸入錯誤！"); return; }
+        /*************************************************************
+         * 1. Supabase 初始化連接設定 (請在此處填入您的金鑰)
+         *************************************************************/
+        const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; 
+        const SUPABASE_ANON_KEY = "請放入你的Supabase Anon Key"; 
         
-        // 轉換雲端欄位對應至網頁變數
-        let mappedData = {
-            xp: data.xp || 0, 
-            loginDays: data.login_days || 1, 
-            maxUnlockedUnit: data.max_unlocked_unit || 1,
-            maxUnlockedStage: data.max_unlocked_stage || 1, 
-            wordScores: data.word_scores || 0,
-            grammarScores: data.grammar_scores || 0, 
-            challengeScores: data.challenge_scores || 0,
-            wordStreaks: data.word_streaks || {}, 
-            wrongWordsBuffer: []
-        };
-        bindUserData(uInput, mappedData);
-    } catch(e) {
-        alert("登入發生非預期錯誤：" + e.message);
-    }
-});
-
-function bindUserData(username, dataObj) {
-    user = username;
-    userScores = dataObj;
-    document.getElementById("login-modal").classList.add("hidden");
-    document.getElementById("main-app").classList.remove("hidden");
-    document.getElementById("lbl-username").innerText = user;
-    document.getElementById("lbl-login-days").innerText = userScores.loginDays;
-    updateXPDisplay();
-
-    document.addEventListener("visibilitychange", () => { if (document.hidden) stopSpeechRecognition(); });
-    loadStage(userScores.maxUnlockedUnit, userScores.maxUnlockedStage);
-}
-
-// 【即時存檔功能】：將最新分數與進度寫回雲端
-async function saveToRemote() {
-    if(!user) return;
-    if(!db) {
-        let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-        if(localDB[user]) {
-            Object.assign(localDB[user], userScores);
-            localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
+        let db = null;
+        if (SUPABASE_URL && SUPABASE_URL !== "請放入你的Supabase專案URL") {
+            db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
-        return;
-    }
-    
-    await db.from('students').update({
-        xp: userScores.xp, 
-        max_unlocked_unit: userScores.maxUnlockedUnit,
-        max_unlocked_stage: userScores.maxUnlockedStage, 
-        word_scores: userScores.wordScores,
-        grammar_scores: userScores.grammarScores, 
-        challenge_scores: userScores.challengeScores,
-        word_streaks: userScores.wordStreaks
-    }).eq('username', user);
-}
 
-function updateXPDisplay() { 
-    document.getElementById("lbl-xp").innerText = userScores.xp; 
-}
+        let user = ""; 
+        let userScores = {
+            xp: 0, loginDays: 1, maxUnlockedUnit: 1, maxUnlockedStage: 1,
+            wordScores: 0, grammarScores: 0, challengeScores: 0,
+            wordStreaks: {}, wrongWordsBuffer: [],
+            s1Completed: false, s2Completed: false // 用於追蹤階段三解鎖資格
+        };
+
+        let currentUnit = 1;
+        let currentStage = 1; 
+        let currentQueue = [];
+        let currentIndex = 0;
+        let wordRoundCorrectCount = 0; 
+        let isAnsweredState = false; 
+        let workspaceBlocks = []; 
 
         /*************************************************************
-         * 3. 排行榜 (雲端即時連動獲取)
+         * 2. 註冊與登入核心邏輯
          *************************************************************/
-        let activeRankTab = "word";
-        document.getElementById("btn-trigger-rank").addEventListener("click", () => { renderRankList(); document.getElementById("rank-modal").classList.remove("hidden"); });
-        document.getElementById("btn-close-rank").addEventListener("click", () => document.getElementById("rank-modal").classList.add("hidden"));
+        document.getElementById("btn-register").addEventListener("click", async () => {
+            const uInput = document.getElementById("username-input").value.trim();
+            const pInput = document.getElementById("password-input").value.trim();
+            if(!uInput || !pInput) { alert("請輸入完整的暱稱與密碼！"); return; }
 
-        document.querySelectorAll(".rank-tab").forEach(tab => {
-            tab.addEventListener("click", (e) => {
-                document.querySelectorAll(".rank-tab").forEach(t => t.classList.remove("active"));
-                e.target.classList.add("active");
-                activeRankTab = e.target.getAttribute("data-type");
-                renderRankList();
-            });
-        });
-
-        async function renderRankList() {
-            const listContainer = document.getElementById("rank-list-content");
-            listContainer.innerHTML = "載入中...";
-            
-            let players = [];
-            if(!supabase) {
+            if(!db) {
+                alert("⚠️ 未設定雲端。切換為本地模擬註冊。");
                 let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
-                players = Object.keys(localDB).map(n => ({ name: n, word: localDB[n].wordScores, grammar: localDB[n].grammarScores, challenge: localDB[n].challengeScores }));
-            } else {
-                const { data } = await supabase.from('students').select('username, word_scores, grammar_scores, challenge_scores');
-                if(data) players = data.map(x => ({ name: x.username, word: x.word_scores, grammar: x.grammar_scores, challenge: x.challenge_scores }));
+                if(localDB[uInput]) { alert("❌ 此暱稱已被註冊！"); return; }
+                localDB[uInput] = { password: pInput, xp:0, loginDays: 2, maxUnlockedUnit:1, maxUnlockedStage:1, wordScores:0, grammarScores:0, challengeScores:0, wordStreaks:{} };
+                localStorage.setItem("LOCAL_DB", JSON.stringify(localDB));
+                alert("🎉 本地模擬註冊成功！"); return;
             }
 
-            players.sort((a, b) => b[activeRankTab] - a[activeRankTab]);
-            listContainer.innerHTML = "";
+            try {
+                const { data } = await db.from('students').select('username').eq('username', uInput).maybeSingle();
+                if(data) { alert("❌ 此暱稱已被註冊，請換一個名字！"); return; }
 
-            players.forEach((p, idx) => {
-                let crown = (idx===0)?"🥇 ":(idx===1)?"🥈 ":(idx===2)?"🥉 ":"";
-                let suffix = activeRankTab==='word'?" XP":activeRankTab==='grammar'?" 積分":" 挑戰分";
-                const row = document.createElement("div");
-                row.className = "rank-item";
-                row.innerHTML = `<span>${crown}${idx + 1}. ${p.name}</span><span>${p[activeRankTab]}${suffix}</span>`;
-                listContainer.appendChild(row);
+                const { error: insError } = await db.from('students').insert([{ username: uInput, password: pInput, login_days: 1 }]);
+                if(insError) alert("註冊失敗：" + insError.message); 
+                else alert("🎉 雲端帳號註冊成功！請直接登入。");
+            } catch(e) { alert("註冊錯誤：" + e.message); }
+        });
+
+        document.getElementById("btn-login").addEventListener("click", async () => {
+            const uInput = document.getElementById("username-input").value.trim();
+            const pInput = document.getElementById("password-input").value.trim();
+            if(!uInput || !pInput) { alert("請輸入暱稱與密碼！"); return; }
+
+            if(!db) {
+                let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
+                if(!localDB[uInput] || localDB[uInput].password !== pInput) { alert("❌ 帳號或密碼錯誤！"); return; }
+                bindUserData(uInput, localDB[uInput]); return;
+            }
+
+            try {
+                const { data, error } = await db.from('students').select('*').eq('username', uInput).maybeSingle();
+                if(!data || data.password !== pInput) { alert("❌ 帳號或密碼錯誤！"); return; }
+                
+                bindUserData(uInput, {
+                    xp: data.xp || 0, loginDays: data.login_days || 1, maxUnlockedUnit: data.max_unlocked_unit || 1,
+                    maxUnlockedStage: data.max_unlocked_stage || 1, wordScores: data.word_scores || 0,
+                    grammarScores: data.grammar_scores || 0, challengeScores: data.challenge_scores || 0,
+                    wordStreaks: data.word_streaks || {}, wrongWordsBuffer: data.wrong_words_buffer || [],
+                    s1Completed: data.s1_completed || false, s2Completed: data.s2_completed || false
+                });
+            } catch(e) { alert("登入錯誤：" + e.message); }
+        });
+
+        function bindUserData(username, dataObj) {
+            user = username; userScores = dataObj;
+            document.getElementById("login-modal").classList.add("hidden");
+            document.getElementById("main-app").classList.remove("hidden");
+            document.getElementById("lbl-username").innerText = user;
+            document.getElementById("lbl-login-days").innerText = userScores.loginDays;
+            updateXPDisplay();
+            setupUnitSelector();
+            loadStage(userScores.maxUnlockedUnit, userScores.maxUnlockedStage);
+        }
+
+        async function saveToRemote() {
+            if(!user) return;
+            if(!db) {
+                let localDB = JSON.parse(localStorage.getItem("LOCAL_DB") || "{}");
+                if(localDB[user]) { Object.assign(localDB[user], userScores); localStorage.setItem("LOCAL_DB", JSON.stringify(localDB)); }
+                return;
+            }
+            await db.from('students').update({
+                xp: userScores.xp, max_unlocked_unit: userScores.maxUnlockedUnit, max_unlocked_stage: userScores.maxUnlockedStage,
+                word_scores: userScores.wordScores, grammar_scores: userScores.grammarScores, challenge_scores: userScores.challengeScores,
+                word_streaks: userScores.wordStreaks, wrong_words_buffer: userScores.wrongWordsBuffer,
+                s1_completed: userScores.s1Completed, s2_completed: userScores.s2Completed
+            }).eq('username', user);
+        }
+
+        function updateXPDisplay() { document.getElementById("lbl-xp").innerText = userScores.xp; }
+
+        function setupUnitSelector() {
+            // 允許任意點選小圓點切換已通關歷史關卡（自由重複練習機制）
+            document.querySelectorAll(".stage-dot").forEach(dot => {
+                dot.onclick = () => {
+                    const targetS = parseInt(dot.getAttribute("data-stage"));
+                    if(currentUnit < userScores.maxUnlockedUnit || (currentUnit === userScores.maxUnlockedUnit && targetS <= userScores.maxUnlockedStage)) {
+                        loadStage(currentUnit, targetS);
+                    } else if (targetS === 3 && !userScores.s1Completed && !userScores.s2Completed) {
+                        alert("🔒 階段三挑戰失敗重置中。請先回到階段一、二各任意複習刷完一輪！");
+                    } else {
+                        alert("🔒 該階段尚未解鎖。");
+                    }
+                };
             });
         }
 
         /*************************************************************
-         * 4. 題目佇列配給核心 (功能修改：10題為一輪進階機制)
+         * 3. 智慧出題佇列配給核心
          *************************************************************/
         function loadStage(unit, stage) {
-            clearInterval(stage3Timer);
             stopSpeechRecognition();
-            isWrongAnsweringState = false;
-            isAnsweredState = false;
-
-            currentUnit = unit;
-            currentStage = stage;
-            currentIndex = 0;
-            wordRoundCorrectCount = 0; // 新一輪重置正確題數
+            currentUnit = unit; currentStage = stage; currentIndex = 0; wordRoundCorrectCount = 0; isAnsweredState = false;
             
             document.getElementById("lbl-unit-title").innerText = `單元 ${currentUnit}`;
             document.getElementById("hint-text-box").classList.add("hidden");
             document.getElementById("btn-hint-toggle").classList.add("hidden");
-            document.getElementById("btn-forced-mic").classList.add("hidden");
+            document.getElementById("btn-next-flow").classList.add("hidden");
 
             document.querySelectorAll(".stage-dot").forEach(dot => {
                 const sNum = parseInt(dot.getAttribute("data-stage"));
-                dot.className = "stage-dot";
-                if(sNum === currentStage) dot.classList.add("active");
-                if(currentUnit > userScores.maxUnlockedUnit || (currentUnit === userScores.maxUnlockedUnit && sNum > userScores.maxUnlockedStage)) dot.classList.add("locked");
+                dot.className = "stage-dot" + (sNum === currentStage ? " active" : "");
             });
 
             const modeBadge = document.getElementById("lbl-mode-text");
-            if(currentStage === 3) {
-                modeBadge.innerText = "挑戰模式"; modeBadge.className = "mode-badge mode-challenge";
-                document.getElementById("hp-box").classList.remove("hidden");
-                document.getElementById("timer-box").classList.remove("hidden");
-                hp = 3; renderHP();
-            } else {
-                modeBadge.innerText = "練習模式"; modeBadge.className = "mode-badge mode-practice";
-                document.getElementById("hp-box").classList.add("hidden"); document.getElementById("timer-box").classList.add("hidden");
-                comboCount = 0; document.getElementById("combo-box").classList.add("hidden");
-            }
+            if(currentStage === 3) { modeBadge.innerText = "盲聽魔王關"; modeBadge.className = "mode-badge mode-challenge"; }
+            else { modeBadge.innerText = "練習模式"; modeBadge.className = "mode-badge mode-practice"; }
 
             buildQueue();
             showCurrentQuestion();
@@ -415,18 +320,30 @@ function updateXPDisplay() {
             let pool = window.globalWordsPool || [];
 
             if(currentStage === 1) {
-                // 固定 10 題為一輪
-                let rawWords = pool.filter(x => x.unit === currentUnit && x.type === 'word');
-                currentQueue = shuffleArray([...rawWords]).slice(0, 10);
-            } else if (currentStage === 2) {
-                // 階段 2：固定 25 題語法大師路徑
-                let rawSentences = pool.filter(x => x.unit === currentUnit && x.type === 'sentence');
-                let temp = [];
-                while(temp.length < 25) { temp = temp.concat(shuffleArray([...rawSentences])); }
+                // 階段一：精準單字選擇題 (25題)
+                let currentUnitWords = pool.filter(x => x.unit === currentUnit && x.type === 'word');
+                let temp = [...currentUnitWords];
+                while(temp.length < 25) { temp = temp.concat(shuffleArray([...currentUnitWords])); }
                 currentQueue = temp.slice(0, 25);
-            } else {
-                let rawSentences = pool.filter(x => x.unit === currentUnit && x.type === 'sentence');
-                currentQueue = shuffleArray([...rawSentences]).slice(0, 5);
+            } 
+            else if(currentStage === 2) {
+                // 階段二：聽音拼字塊 (第二單元啟動隨機固有數詞+量詞語法生成)
+                if(currentUnit === 2) {
+                    currentQueue = generateUnit2GrammarPool(20); // 動態生成 20 題專屬量詞語法題
+                } else {
+                    let unitSentences = pool.filter(x => x.unit === currentUnit && x.type === 'sentence');
+                    let temp = [...unitSentences];
+                    while(temp.length < 20) { temp = temp.concat(shuffleArray([...unitSentences])); }
+                    currentQueue = temp.slice(0, 20);
+                }
+            } 
+            else {
+                // 階段三：盲聽盲讀 (20題)，優先從錯題本緩衝區抽題，不夠再從本單元混抽
+                let errors = userScores.wrongWordsBuffer.filter(x => x.unit === currentUnit);
+                let fallback = pool.filter(x => x.unit === currentUnit);
+                let mixed = [...errors].concat(shuffleArray([...fallback]));
+                while(mixed.length < 20) { mixed = mixed.concat(shuffleArray([...fallback])); }
+                currentQueue = mixed.slice(0, 20);
             }
         }
 
@@ -435,266 +352,318 @@ function updateXPDisplay() {
             return arr;
         }
 
-        function renderHP() {
-            const hpBox = document.getElementById("hp-box"); hpBox.innerHTML = "";
-            for(let i=0; i<3; i++) {
-                const heart = document.createElement("i"); heart.className = (i < hp) ? "fa-solid fa-heart" : "fa-regular fa-heart";
-                hpBox.appendChild(heart);
+        // 第二單元專用：固有數詞量詞語法題目隨機生成器
+        function generateUnit2GrammarPool(count) {
+            const numMap = [
+                {ko:"한", zh:"一"}, {ko:"두", zh:"二"}, {ko:"세", zh:"三"}, {ko:"네", zh:"四"}, {ko:"다섯", zh:"五"},
+                {ko:"여섯", zh:"六"}, {ko:"일곱", zh:"七"}, {ko:"여덟", zh:"八"}, {ko:"아홉", zh:"九"}, {ko:"열", zh:"十"},
+                {ko:"열한", zh:"十一"}, {ko:"열두", zh:"十二"}, {ko:"열세", zh:"十三"}, {ko:"열네", zh:"十四"}, {ko:"열다섯", zh:"十五"},
+                {ko:"열여섯", zh:"十六"}, {ko:"열일곱", zh:"十七"}, {ko:"열여덟", zh:"十八"}, {ko:"열아홉", zh:"十九"}
+            ];
+            const items = [
+                {word:"학생", unit:"명", zh:"學生"}, {word:"콜라", unit:"병", zh:"可樂"},
+                {word:"정장", unit:"벌", zh:"西裝"}, {word:"케이크", unit:"조각", zh:"蛋糕"}
+            ];
+            let list = [];
+            for(let i=0; i<count; i++) {
+                let randomItem = items[Math.floor(Math.random() * items.length)];
+                let randomNum = numMap[Math.floor(Math.random() * numMap.length)];
+                let textStr = `${randomItem.word} ${randomNum.ko} ${randomItem.unit}이 있어요.`;
+                let zhStr = `有${randomNum.zh}個${randomItem.zh}。`;
+                list.push({
+                    unit: 2, type: 'sentence', text: textStr, chinese: zhStr,
+                    blocks: [randomItem.word, randomNum.ko, randomItem.unit + "이 있어요."] // 封裝成獨立大字塊
+                });
             }
+            return list;
         }
 
         /*************************************************************
-         * 5. 題型動態突變與渲染引擎
+         * 4. 核心渲染與作答控制引擎
          *************************************************************/
         function showCurrentQuestion() {
             if(currentIndex >= currentQueue.length) { handleStageComplete(); return; }
 
-            isWrongAnsweringState = false;
-            isAnsweredState = false; 
+            isAnsweredState = false;
+            workspaceBlocks = [];
+            document.getElementById("lbl-score-counter").innerText = `進度: ${currentIndex + 1} / ${currentQueue.length}`;
             document.getElementById("hint-text-box").classList.add("hidden");
-            // 【功能修改】：點選提示卡預設隱藏
             document.getElementById("btn-hint-toggle").classList.add("hidden");
-            document.getElementById("btn-forced-mic").classList.add("hidden");
+            document.getElementById("btn-next-flow").classList.add("hidden");
             document.getElementById("lbl-status-text").innerText = "";
-            
+            document.getElementById("lbl-status-text").className = "status-msg";
+
             let pct = (currentIndex / currentQueue.length) * 100;
             document.getElementById("main-progress").style.width = `${pct}%`;
 
             const item = currentQueue[currentIndex];
 
-            if(currentStage === 1) {
-                document.getElementById("quiz-options-container").classList.remove("hidden");
-                
-                if(!userScores.wordStreaks[item.text]) userScores.wordStreaks[item.text] = 0;
-                let currentWordState = userScores.wordStreaks[item.text];
+            // 隱藏所有特定佈局區，依階段啟用
+            document.getElementById("quiz-options-container").classList.add("hidden");
+            document.getElementById("puzzle-work-zone").classList.add("hidden");
+            document.getElementById("puzzle-pool-zone").classList.add("hidden");
 
-                // 【功能修改 4】：依出現次數自動變更題型，所有選項內容皆從單字庫自生
-                if(currentWordState === 0) {
-                    // 第一次出現：韓文選中文
-                    document.getElementById("lbl-target-text").innerText = item.text;
-                    buildOptionsStage1(item, "ko_to_zh");
-                } 
-                else if(currentWordState === 1) {
-                    // 第二次出現：中文選韓文
-                    document.getElementById("lbl-target-text").innerText = getChineseHintString(item);
-                    buildOptionsStage1(item, "zh_to_ko");
-                } 
-                else {
-                    // 第三次或更多次：聽音檔選中文意思
-                    document.getElementById("lbl-target-text").innerHTML = `<i class="fa-solid fa-circle-play" style="color:var(--primary); cursor:pointer;"></i> [點擊聆聽音檔]`;
-                    playTTS(item.text);
-                    buildOptionsStage1(item, "audio_to_zh");
-                }
+            if(currentStage === 1) {
+                // 階段一：單字選擇題
+                document.getElementById("quiz-options-container").classList.remove("hidden");
+                document.getElementById("lbl-target-text").innerText = item.text;
+                buildOptionsStage1(item);
             } 
             else if(currentStage === 2) {
-                // 【功能修改 6】：階段二 題目只出現單字，語法用選擇的
-                document.getElementById("quiz-options-container").classList.remove("hidden");
-                let coreWord = findCoreWord(item.text);
-                document.getElementById("lbl-target-text").innerText = coreWord; // 只秀單字
-                buildOptionsStage2Grammar(item);
+                // 階段二：聽音拼字塊
+                if(!userScores.wordStreaks[item.text]) userScores.wordStreaks[item.text] = 0;
+                
+                if(userScores.wordStreaks[item.text] >= 1) {
+                    // 出現第二次的題目：只出現關鍵字(單字)，盲聽+語音跟讀判別
+                    document.getElementById("lbl-target-text").innerText = findCoreWord(item.text);
+                    document.getElementById("lbl-status-text").innerText = "🔔 此題目已出現第二次，請盲聽後進行跟讀！";
+                    playTTS(item.text);
+                    // 播放完自動觸發跟讀機制
+                    setTimeout(() => { triggerAutomaticSpeechFlow(item.text); }, 1500);
+                } else {
+                    // 第一次出現：聽語音點擊完整字塊拼圖
+                    document.getElementById("lbl-target-text").innerHTML = `<i class="fa-solid fa-circle-play" style="color:var(--primary); cursor:pointer;"></i> [聽音辨位拼圖]`;
+                    document.getElementById("puzzle-work-zone").classList.remove("hidden");
+                    document.getElementById("puzzle-pool-zone").classList.remove("hidden");
+                    playTTS(item.text);
+                    buildPuzzleInterface(item);
+                }
             } 
             else if(currentStage === 3) {
-                document.getElementById("quiz-options-container").classList.remove("hidden");
-                let coreWord = findCoreWord(item.text);
-                document.getElementById("lbl-target-text").innerText = item.text.replace(coreWord, "______");
-                buildOptionsForStage3(coreWord, item);
-                startStage3Timer();
+                // 階段三：魔王盲聽盲讀 (無提示、無中文，只播音檔自動開啟麥克風跟讀)
+                document.getElementById("lbl-target-text").innerHTML = `<i class="fa-solid fa-volume-high"></i> 🔊 盲聽盲讀中...`;
+                playTTS(item.text);
+                setTimeout(() => { triggerAutomaticSpeechFlow(item.text); }, 1200);
             }
         }
 
-        function findCoreWord(sentence) {
-            const wordList = ["짐", "볼펜", "담요", "휴지", "시계", "지우개", "컴퓨터", "라면", "콜라", "지갑", "커피", "메뉴", "우산", "손님", "정장", "맥주", "잡지", "여권", "핸드폰", "옷", "반찬", "홍차", "빵"];
-            for(let w of wordList) { if(sentence.includes(w)) return w; }
-            return sentence.substring(0, 2);
-        }
-
-        // 階段 1 動態建構干擾選項 (完全源自單字資料庫)
-        function buildOptionsStage1(correctItem, mode) {
+        /*************************************************************
+         * 5. 階段一與階段二選項智慧建構
+         *************************************************************/
+        function buildOptionsStage1(correctItem) {
             const container = document.getElementById("quiz-options-container");
             container.innerHTML = "";
             let answers = [correctItem];
-            let pool = window.globalWordsPool.filter(x => x.type === 'word' && x.text !== correctItem.text);
-            shuffleArray(pool);
+            
+            // 優先選擇同單元的單字，不夾雜任何文法字樣
+            let pool = window.globalWordsPool.filter(x => x.unit === currentUnit && x.type === 'word' && x.text !== correctItem.text);
+            // 如果同單元不夠，再拿歷史錯題或之前單字的單字填充
+            if(pool.length < 3) {
+                pool = pool.concat(window.globalWordsPool.filter(x => x.type === 'word' && x.text !== correctItem.text));
+            }
+            
+            pool = shuffleArray(pool);
             for(let i=0; i<3; i++) { if(pool[i]) answers.push(pool[i]); }
             answers = shuffleArray(answers);
 
             answers.forEach(ans => {
                 const btn = document.createElement("button");
                 btn.className = "option-btn";
-                
-                if(mode === "ko_to_zh" || mode === "audio_to_zh") {
-                    btn.innerText = getChineseHintString(ans);
+                btn.innerText = getChineseHintString(ans);
+                btn.onclick = () => { if(!isAnsweredState) evaluateAnswer(ans.text === correctItem.text); };
+                container.appendChild(btn);
+            });
+        }
+
+        function buildPuzzleInterface(item) {
+            const workZone = document.getElementById("puzzle-work-zone");
+            const poolZone = document.getElementById("puzzle-pool-zone");
+            workZone.innerHTML = ""; poolZone.innerHTML = "";
+
+            // 字塊切分：一個單字/固有詞組為一獨立字塊
+            let baseBlocks = [];
+            if(item.blocks) {
+                baseBlocks = [...item.blocks]; // 動態第二單元直接吃封裝好的結構
+            } else {
+                // 第一/三單元常規切割法：[核心單字, 語法後綴詞組]
+                let core = findCoreWord(item.text);
+                if(item.text.includes(core)) {
+                    baseBlocks.push(core);
+                    let suffix = item.text.replace(core, "").trim();
+                    if(suffix) baseBlocks.push(suffix);
                 } else {
-                    btn.innerText = ans.text; // 中選韓
+                    baseBlocks = [item.text];
                 }
-                
-                btn.addEventListener("click", () => handleAnswerSelect(ans.text === correctItem.text));
-                container.appendChild(btn);
-            });
-        }
+            }
 
-        // 【功能修改 6】：階段二專用，題目給單字，選項給完整文法句型讓學生挑選
-        function buildOptionsStage2Grammar(correctItem) {
-            const container = document.getElementById("quiz-options-container");
-            container.innerHTML = "";
+            // 加入同單元隨機大字塊干擾項，限制過濾只看當前與歷史單字，防止未解鎖曝光
+            let historyPool = window.globalWordsPool.filter(x => x.unit <= currentUnit && x.type === 'word');
+            shuffleArray(historyPool);
+            if(historyPool[0]) baseBlocks.push(historyPool[0].text);
+            
+            let shuffledBlocks = shuffleArray([...baseBlocks]);
 
-            let answers = [correctItem];
-            let pool = window.globalWordsPool.filter(x => x.type === 'sentence' && x.text !== correctItem.text);
-            shuffleArray(pool);
-            for(let i=0; i<3; i++) { if(pool[i]) answers.push(pool[i]); }
-            answers = shuffleArray(answers);
+            shuffledBlocks.forEach((wordText, idx) => {
+                const block = document.createElement("div");
+                block.className = "puzzle-block";
+                block.innerText = wordText;
+                block.setAttribute("data-id", idx);
+                block.onclick = () => {
+                    if(isAnsweredState || block.classList.contains("selected")) return;
+                    block.classList.add("selected");
+                    
+                    // 複製加入工作區
+                    const cloned = document.createElement("div");
+                    cloned.className = "puzzle-block";
+                    cloned.innerText = wordText;
+                    cloned.onclick = () => {
+                        if(isAnsweredState) return;
+                        block.classList.remove("selected");
+                        cloned.remove();
+                        workspaceBlocks = workspaceBlocks.filter(b => b !== wordText);
+                    };
+                    workZone.appendChild(cloned);
+                    workspaceBlocks.push(wordText);
 
-            answers.forEach(ans => {
-                const btn = document.createElement("button");
-                btn.className = "option-btn";
-                btn.innerText = ans.text; // 選項為完整句型語法
-                btn.addEventListener("click", () => handleAnswerSelect(ans.text === correctItem.text));
-                container.appendChild(btn);
-            });
-        }
-
-        function buildOptionsForStage3(coreWord, fullItem) {
-            const container = document.getElementById("quiz-options-container");
-            container.innerHTML = "";
-            let answers = [coreWord];
-            const wordList = ["짐", "볼펜", "담요", "휴지", "시계", "지우개", "라면", "콜라", "지갑", "우산", "맥주", "빵"];
-            let distractors = wordList.filter(x => x !== coreWord);
-            shuffleArray(distractors);
-            answers.push(distractors[0]); answers.push(distractors[1]); answers.push(distractors[2]);
-            answers = shuffleArray(answers);
-
-            answers.forEach(word => {
-                const btn = document.createElement("button");
-                btn.className = "option-btn"; btn.innerText = word;
-                btn.addEventListener("click", () => { clearInterval(stage3Timer); handleAnswerSelect(word === coreWord); });
-                container.appendChild(btn);
+                    // 自動校對長度是否拼完
+                    let targetStringClean = item.text.replace(/\s+/g, "");
+                    let currentStringClean = workspaceBlocks.join("").replace(/\s+/g, "");
+                    if(currentStringClean === targetStringClean) {
+                        evaluateAnswer(true);
+                    } else if(workspaceBlocks.length >= baseBlocks.length) {
+                        // 塊數滿了但字沒對齊即為錯誤
+                        evaluateAnswer(false);
+                    }
+                };
+                poolZone.appendChild(block);
             });
         }
 
         /*************************************************************
-         * 6. 答題後處理與作答完才出現提示卡機制
+         * 6. 正誤審查評分核心（全導入「繼續」按鈕流）
          *************************************************************/
-        function handleAnswerSelect(isCorrect) {
-            if(isWrongAnsweringState) return;
-            const currentItem = currentQueue[currentIndex];
-            
-            // 【功能修改 3】：標記已作答，開啟提示卡點選權限
-            isAnsweredState = true; 
+        function evaluateAnswer(isCorrect) {
+            isAnsweredState = true;
             document.getElementById("btn-hint-toggle").classList.remove("hidden");
+            const item = currentQueue[currentIndex];
 
             if(isCorrect) {
-                playTTS(currentItem.text);
-                if(currentStage === 1) {
-                    wordRoundCorrectCount++; // 紀錄答對題數
-                    let bonus = Math.min(1 + (userScores.loginDays * 0.1), 1.5);
-                    let earnedXP = Math.round(1 * bonus);
-                    userScores.xp += earnedXP; userScores.wordScores += earnedXP;
-                    
-                    if(!userScores.wordStreaks[currentItem.text]) userScores.wordStreaks[currentItem.text] = 0;
-                    userScores.wordStreaks[currentItem.text]++; // 增加出題計數突變題型
+                wordRoundCorrectCount++;
+                userScores.xp += 2;
+                if(currentStage === 1) userScores.wordScores += 2;
+                if(currentStage === 2) userScores.grammarScores += 2;
+                if(currentStage === 3) userScores.challengeScores += 2;
+                
+                if(!userScores.wordStreaks[item.text]) userScores.wordStreaks[item.text] = 0;
+                userScores.wordStreaks[item.text]++; // 累積對題深度
 
-                    document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--success)">🥇 答對了！+${earnedXP} XP</span>`;
-                } 
-                else if(currentStage === 2) {
-                    comboCount++;
-                    let baseXP = (comboCount >= 5) ? 2 : 1;
-                    if(comboCount >= 5) {
-                        document.getElementById("combo-box").innerText = `${comboCount} Combo 🔥 加倍中`;
-                        document.getElementById("combo-box").classList.remove("hidden");
-                    }
-                    let finalGrammarScore = Math.round(baseXP * Math.min(1 + (userScores.loginDays * 0.1), 1.5));
-                    userScores.xp += finalGrammarScore; userScores.grammarScores += finalGrammarScore;
-                    document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--success)">🔥 連擊答對！(獲得 ${finalGrammarScore} 積分)</span>`;
-                }
-                else if(currentStage === 3) {
-                    comboCount++;
-                    let roundScore = Math.round((10 + currentStage3TimeLeft) * (comboCount >= 3 ? 1.5 : 1));
-                    userScores.xp += roundScore; userScores.challengeScores += roundScore;
-                    document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--success)">💎 挑戰成功！+${roundScore} 挑戰分</span>`;
-                }
-
-                saveToRemote();
-                updateXPDisplay();
-                setTimeout(() => { currentIndex++; showCurrentQuestion(); }, 1400);
+                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--success)">🥇 答對了！持續保持！</span>`;
             } else {
-                comboCount = 0; document.getElementById("combo-box").classList.add("hidden");
-                if(currentStage === 1 || currentStage === 2) {
-                    if(currentStage === 1) userScores.wordStreaks[currentItem.text] = 0;
-                    injectWrongItemIntoQueue(currentItem);
-                    triggerWrongCorrectionFlow(currentItem);
-                } 
-                else if(currentStage === 3) {
-                    hp--; renderHP();
-                    if(hp <= 0) {
-                        alert("💀 挑戰失敗，退回練習模式重新修煉！"); loadStage(currentUnit, 2);
-                    } else {
-                        document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger)">❌ 答錯了，扣除一顆心！</span>`;
-                        setTimeout(() => { currentIndex++; showCurrentQuestion(); }, 1400);
-                    }
+                // 答錯注入錯題大數據庫
+                if(!userScores.wrongWordsBuffer.some(x => x.text === item.text)) {
+                    userScores.wrongWordsBuffer.push(item);
                 }
+                userScores.wordStreaks[item.text] = 0; // 對題歸零重練
+                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger)">❌ 答錯了！正確解答為：${item.text}</span>`;
+            }
+
+            saveToRemote();
+            updateXPDisplay();
+
+            // 階段一與二必須強制點擊「繼續」按鈕才跳下一題
+            if(currentStage === 1 || currentStage === 2) {
+                const nextBtn = document.getElementById("btn-next-flow");
+                nextBtn.classList.remove("hidden");
+                nextBtn.onclick = () => {
+                    currentIndex++;
+                    showCurrentQuestion();
+                };
+            } else {
+                // 階段三為全語音盲測流，不拖泥帶水，1.5 秒自動下一題
+                setTimeout(() => { currentIndex++; showCurrentQuestion(); }, 1500);
             }
         }
 
-        function injectWrongItemIntoQueue(item) {
-            let targetPos = currentIndex + 5;
-            if(targetPos > currentQueue.length) { currentQueue.push(item); } 
-            else { currentQueue.splice(targetPos, 0, item); }
+        /*************************************************************
+         * 7. 跟讀判別測驗與麥克風全自動智慧化控制
+         *************************************************************/
+        let recognition = null;
+        if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition(); recognition.lang = 'ko-KR'; recognition.continuous = false;
         }
 
-        function triggerWrongCorrectionFlow(item) {
-            isWrongAnsweringState = true;
-            const hintBox = document.getElementById("hint-text-box");
-            hintBox.innerHTML = `<strong>⚠️ 正解：${item.text}</strong><br>💡 中文義：${getChineseHintString(item)}`;
-            hintBox.classList.remove("hidden");
+        function triggerAutomaticSpeechFlow(targetAnswerText) {
+            if(!recognition) {
+                // 瀏覽器不支援語音時的保險機制
+                setTimeout(() => { evaluateAnswer(true); }, 1500);
+                return;
+            }
 
-            document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger)">請完成正確口說跟讀以導正發音。</span>`;
-            document.getElementById("btn-forced-mic").classList.remove("hidden");
+            const statusLbl = document.getElementById("lbl-status-text");
+            statusLbl.className = "status-msg listening-active";
+            statusLbl.innerHTML = `<i class="fa-solid fa-microphone"></i> 【現在請說話...】正在聆聽您的韓語讀音...`;
+            
+            try { recognition.start(); } catch(e){}
 
-            clearTimeout(micSafetyTimer);
-            micSafetyTimer = setTimeout(() => {
-                stopSpeechRecognition(); isWrongAnsweringState = false; currentIndex++; showCurrentQuestion();
-            }, 25000);
+            recognition.onresult = function(event) {
+                // 收音完成，立刻停止並關閉麥克風
+                recognition.stop();
+                statusLbl.className = "status-msg";
+
+                const speechResult = event.results[0][0].transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
+                const targetClean = targetAnswerText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
+
+                if(speechResult === targetClean || targetClean.includes(speechResult) || speechResult.includes(targetClean)) {
+                    evaluateAnswer(true);
+                } else {
+                    evaluateAnswer(false);
+                }
+            };
+
+            recognition.onerror = function() {
+                recognition.stop();
+                statusLbl.className = "status-msg";
+                evaluateAnswer(false);
+            };
         }
 
-        function startStage3Timer() {
-            currentStage3TimeLeft = 10; document.getElementById("lbl-timer").innerText = currentStage3TimeLeft;
-            clearInterval(stage3Timer);
-            stage3Timer = setInterval(() => {
-                currentStage3TimeLeft--; document.getElementById("lbl-timer").innerText = currentStage3TimeLeft;
-                if(currentStage3TimeLeft <= 0) { clearInterval(stage3Timer); handleAnswerSelect(false); }
-            }, 1000);
-        }
+        function stopSpeechRecognition() { if(recognition) { try{recognition.stop();}catch(e){} } }
 
         /*************************************************************
-         * 7. 階段切換與一輪10題 8題過關判定
+         * 8. 階段結算與防禦退回控制
          *************************************************************/
         function handleStageComplete() {
             if(currentStage === 1) {
-                // 【功能修改 4】：10題為一輪，答對 >= 8 題跳出「太棒了🎉」
-                if(wordRoundCorrectCount >= 8) {
-                    alert("太棒了🎉 一輪10題中你答對了 " + wordRoundCorrectCount + " 題！成功挺進下一關！");
-                    userScores.maxUnlockedStage = 2;
-                    saveToRemote();
-                    loadStage(currentUnit, 2);
+                let rate = wordRoundCorrectCount / currentQueue.length;
+                if(rate >= 0.8) {
+                    alert(`太棒了🎉 階段一答對率達 ${Math.round(rate*100)}%，成功解鎖階段二！`);
+                    userScores.maxUnlockedStage = 2; userScores.s1Completed = true;
+                    saveToRemote(); loadStage(currentUnit, 2);
                 } else {
-                    alert("💡 這一輪10題中你答對了 " + wordRoundCorrectCount + " 題，未達 8 題過關門檻。別灰心，系統已自動為你重新洗牌錯題，再練習一次！");
+                    alert(`💡 答對率為 ${Math.round(rate*100)}%（未達80%門檻）。別灰心，系統已重新洗牌單字，再練習一次！`);
                     loadStage(currentUnit, 1);
                 }
             } 
             else if(currentStage === 2) {
-                alert("🎉 階段 2 語法修煉完成！即將進入【階段 3：限時挑戰大魔王關】！");
-                userScores.maxUnlockedStage = 3; saveToRemote(); loadStage(currentUnit, 3);
+                alert("🎉 階段二聽音拼字塊特訓通過！開啟階段三終極挑戰！");
+                userScores.maxUnlockedStage = 3; userScores.s2Completed = true;
+                saveToRemote(); loadStage(currentUnit, 3);
             } 
             else if(currentStage === 3) {
-                alert(`🏆 挑戰成功！恭喜通關！單元 ${currentUnit + 1} 已為你解鎖！`);
-                userScores.maxUnlockedUnit = currentUnit + 1; userScores.maxUnlockedStage = 1;
-                saveToRemote(); loadStage(currentUnit + 1, 1);
+                if(wordRoundCorrectCount >= 15) {
+                    alert(`🏆 挑戰全勝！盲聽跟讀通過 ${wordRoundCorrectCount} 題！單元 ${currentUnit + 1} 雲端解鎖成功！`);
+                    userScores.maxUnlockedUnit = currentUnit + 1; userScores.maxUnlockedStage = 1;
+                    userScores.s1Completed = false; userScores.s2Completed = false; // 重置下一關的狀態
+                    saveToRemote(); loadStage(currentUnit + 1, 1);
+                } else {
+                    alert(`💀 挑戰失敗！只答對了 ${wordRoundCorrectCount} 題（未滿15題）。需要退回前面階段一、二各完整複習一輪，才能再次挑戰！`);
+                    userScores.s1Completed = false; userScores.s2Completed = false; // 封鎖階段三
+                    userScores.maxUnlockedStage = 1;
+                    saveToRemote(); loadStage(currentUnit, 1);
+                }
             }
         }
 
         /*************************************************************
-         * 8. 語音核心元件與文字發音對照
+         * 9. 輔助工具字典匹配
          *************************************************************/
+        function findCoreWord(sentence) {
+            const wordList = ["짐", "볼펜", "담요", "휴지", "시계", "지우개", "컴퓨터", "라면", "콜라", "지갑", "커피", "메뉴", "우산", "손님", "정장", "맥주", "잡地", "여권", "핸드폰", "옷", "반찬", "홍차", "빵", "학생"];
+            for(let w of wordList) { if(sentence.includes(w)) return w; }
+            return sentence.substring(0, 2);
+        }
+
         function playTTS(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -703,54 +672,19 @@ function updateXPDisplay() {
             }
         }
         document.getElementById("btn-tts").addEventListener("click", () => { const item = currentQueue[currentIndex]; if(item) playTTS(item.text); });
-        document.getElementById("lbl-target-text").addEventListener("click", () => { if(currentStage===1 && userScores.wordStreaks[currentQueue[currentIndex].text] >= 2) { playTTS(currentQueue[currentIndex].text); } });
-
-        let recognition = null;
-        if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition(); recognition.lang = 'ko-KR'; recognition.continuous = false;
-        }
-
-        document.getElementById("btn-forced-mic").addEventListener("click", () => {
-            if(!recognition) { alert("此瀏覽器不支援語音辨識。"); return; }
-            document.getElementById("lbl-status-text").className = "status-msg listening-active";
-            document.getElementById("lbl-status-text").innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 麥克風收音中...`;
-            recognition.start();
-        });
-
-        if(recognition) {
-            recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
-                const currentItem = currentQueue[currentIndex];
-                const targetClean = currentItem.text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
-
-                if(speechResult === targetClean || targetClean.includes(speechResult) || speechResult.includes(targetClean)) {
-                    clearTimeout(micSafetyTimer);
-                    document.getElementById("lbl-status-text").className = "status-msg";
-                    document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--success)"> 跟讀導正成功！</span>`;
-                    setTimeout(() => { isWrongAnsweringState = false; currentIndex++; showCurrentQuestion(); }, 1200);
-                } else {
-                    document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--danger)">❌ 讀音未吻合（收音："${event.results[0][0].transcript}"），請再試一次。</span>`;
-                }
-            };
-        }
-
-        function stopSpeechRecognition() { if(recognition) { try{recognition.stop();}catch(e){} } }
 
         function getChineseHintString(item) {
             if(item.chinese) return item.chinese;
             const dict = {
                 "짐":"行李", "볼펜":"原子筆", "담요":"毛毯", "휴지":"衛生紙", "시계":"時鐘/手錶",
-                "지우개":"橡皮擦", "컴퓨터":"電腦", "라면":"泡麵", "콜라":"可樂", "지갑":"皮夾",
-                "커피":"咖啡", "메뉴":"菜單", "우산":"雨傘", "손님":"客人", "정장":"西裝", "맥주":"啤酒", "잡지":"雜誌", "여권":"護照", "핸드폰":"手機", "옷":"衣服", "반찬":"小菜", "홍차":"紅茶", "빵":"麵包"
+                "지우개":"橡皮擦", "컴퓨轉":"電腦", "라면":"泡麵", "콜라":"可樂", "지갑":"皮夾",
+                "커피":"咖啡", "메뉴":"菜單", "우산":"雨傘", "손님":"客人", "정장":"西裝", "맥주":"啤酒", "잡지":"雜誌", "여권":"護照", "핸드폰":"手機", "옷":"衣服", "반찬":"小菜", "홍차":"紅茶", "빵":"麵包", "학생":"學生"
             };
-            return dict[item.text] || "核心文法組合";
+            return dict[item.text] || "語法複合格局";
         }
 
-        // 【功能修改 3】：點選提示卡改為作答完（或答錯強制復習狀態）才可以點選切換
         document.getElementById("btn-hint-toggle").addEventListener("click", (e) => {
             e.stopPropagation();
-            if(!isAnsweredState && !isWrongAnsweringState) return; 
             const box = document.getElementById("hint-text-box");
             if(box.classList.contains("hidden")) {
                 box.innerHTML = `💡 中文意思：${getChineseHintString(currentQueue[currentIndex])}`;
