@@ -170,11 +170,11 @@
 
     <script src="words.js"></script>
     <script>
-        /*************************************************************
-         * 1. Supabase 初始化連接設定
-         *************************************************************/
-        const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; 
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4";
+   /*************************************************************
+ * 1. Supabase 初始化連接設定（已修復全域變數衝突）
+ *************************************************************/
+const SUPABASE_URL = "https://wnnwvocnrfkntrjcqmol.supabase.co"; // 已移除了結尾的斜線
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indubnd2b2NucmZrbnRyamNxbW9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjY2MTAsImV4cCI6MjEwMDA0MjYxMH0.fBxlPASgAPoXw2LBFppN94RWezow-ZnhGDkOR2qD7-4"; // 請保持你原本貼的那串很長的金鑰
 
 // 使用 db 作為雲端連線變數，避開與全域 supabase 物件衝突
 let db = null;
