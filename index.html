@@ -3,865 +3,618 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>韓語聽力跟讀挑戰系統</title>
-    <!-- 🟢 引入 Supabase 最新版相容 CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+    <title>互動式韓語語言學習 APP</title>
+    <!-- 引入 Font Awesome Icon 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #6366F1;
-            --primary-hover: #4F46E5;
-            --success: #10B981;
-            --gray-light: #F3F4F6;
-            --text-dark: #1F2937;
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #EEF2F6;
-            color: var(--text-dark);
-            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* 登入遮罩 */
-        .login-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-            transition: opacity 0.3s ease;
-        }
-
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
-        .login-box h2 { color: var(--primary); margin-bottom: 10px; }
-        .login-box p { color: #6B7280; font-size: 14px; margin-bottom: 25px; }
-        .login-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #E5E7EB;
-            border-radius: 8px;
-            font-size: 16px;
-            margin-bottom: 20px;
-            box-sizing: border-box;
-        }
-        .login-input:focus {
-            border-color: var(--primary);
-            outline: none;
-        }
-        .btn-login {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
             width: 100%;
-            background: white;
-            padding: 30px;
+            max-width: 600px;
+            background: var(--card-bg);
             border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            display: none; /* 登入前隱藏 */
-        }
-
-        /* 使用者狀態列 */
-        .user-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #EEF2F6;
-            padding: 10px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        h1 { text-align: center; color: var(--primary); margin-bottom: 5px; }
-        .subtitle { text-align: center; color: #6B7280; margin-bottom: 25px; }
-
-        /* 模式切換 */
-        .mode-selector {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .mode-btn {
-            padding: 10px 20px;
-            border: 2px solid #E5E7EB;
-            border-radius: 30px;
-            background: white;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-
-        .mode-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* 數字鍵盤 */
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            gap: 8px;
-            margin-bottom: 25px;
-        }
-
-        @media (max-width: 600px) {
-            .keypad { grid-template-columns: repeat(5, 1fr); }
-        }
-
-        .num-btn {
-            padding: 12px 0;
-            border: none;
-            background: var(--gray-light);
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .num-btn.active { outline: 3px solid var(--primary); }
-        .num-btn.passed { background: #D1FAE5; color: #065F46; }
-
-        /* 句子展示區 */
-        .sentence-box {
-            background: var(--gray-light);
-            padding: 40px 20px;
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 25px;
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 30px;
             position: relative;
         }
 
-        .sentence-text { font-size: 26px; font-weight: bold; letter-spacing: 1px; }
-        .sentence-hidden { filter: blur(8px); user-select: none; }
-
-        .hint-badge {
-            position: absolute;
-            top: 10px; right: 15px;
-            background: #FFE4E6; color: #9F1239;
-            padding: 4px 10px; border-radius: 12px;
-            font-size: 12px; font-weight: bold;
-        }
-
-        /* 控制按鈕 */
-        .controls {
+        .header {
             display: flex;
-            justify-content: center;
-            gap: 15px;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 25px;
-            flex-wrap: wrap;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 15px;
         }
 
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
+        .unit-info h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .stages-indicator {
+            display: flex;
+            gap: 10px;
+        }
+
+        .stage-dot {
+            padding: 6px 12px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            font-size: 0.85rem;
             font-weight: bold;
+            color: #6b7280;
+            transition: all 0.3s;
+        }
+
+        .stage-dot.active {
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        .stage-dot.locked {
+            opacity: 0.5;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--success-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .card-content {
+            text-align: center;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .korean-text {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .hint-text {
+            font-size: 1.1rem;
+            color: #6b7280;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 10px;
             transition: all 0.2s;
         }
 
-        .btn-play { background: #3B82F6; color: white; }
-        .btn-play:hover { background: #2563EB; }
-        .btn-record { background: #EF4444; color: white; }
-        .btn-record.recording { background: #B91C1C; }
-        .btn-playback { background: #10B981; color: white; }
-        .btn-playback:disabled { background: #E5E7EB; color: #9CA3AF; cursor: not-allowed; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success-color); color: white; }
+        .btn-danger { background: var(--danger-color); color: white; }
+        .btn-secondary { background: #e5e7eb; color: #4b5563; }
+        .btn-secondary:hover { background: #d1d5db; }
 
-        /* 反饋 */
-        .feedback { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 25px; min-height: 30px; }
-        .text-success { color: var(--success); }
-        .text-danger { color: #EF4444; }
-
-        /* 完成與排行 */
-        .submit-section { border-top: 2px solid #F3F4F6; padding-top: 25px; text-align: center; }
-
-        .btn-submit {
-            background: var(--success);
-            color: white;
-            font-size: 18px;
-            padding: 15px 40px;
-            border-radius: 30px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-            transition: all 0.2s;
+        .speaking-status {
+            margin-top: 15px;
+            font-weight: 600;
+            font-size: 1rem;
+            min-height: 24px;
         }
 
-        .btn-submit:disabled { background: #E5E7EB; color: #9CA3AF; cursor: not-allowed; box-shadow: none; }
+        .status-listening { color: var(--primary-color); animation: pulse 1.5s infinite; }
+        .status-success { color: var(--success-color); }
+        .status-error { color: var(--danger-color); }
 
-        .leaderboard { margin-top: 40px; }
-        .leaderboard h3 { text-align: center; margin-bottom: 15px; color: #374151; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #E5E7EB; }
-        th { background-color: #F3F4F6; color: #4B5563; }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<!-- 隱藏播放元件，用來暫存每一次點擊生成的 Blob URL -->
-<audio id="audioPlayback" style="display:none;"></audio>
+    <div class="container">
+        <!-- 頂部資訊與關卡進度 -->
+        <div class="header">
+            <div class="unit-info">
+                <h2 id="unit-title">單元 1</h2>
+            </div>
+            <div class="stages-indicator">
+                <span class="stage-dot" id="dot-1"><i class="fa-solid fa-w"></i> 單字</span>
+                <span class="stage-dot" id="dot-2"><i class="fa-solid fa-s"></i> 句型</span>
+                <span class="stage-dot" id="dot-3"><i class="fa-solid fa-microphone"></i> 口說</span>
+            </div>
+        </div>
 
-<!-- 登入遮罩 -->
-<div class="login-overlay" id="login-overlay">
-    <div class="login-box">
-        <h2>🇰🇷 開始你的韓語挑戰</h2>
-        <p>請輸入您的暱稱/名字以開始進行跟讀。只要名字相同，在任何裝置登入都可以完美同步進度！</p>
-        <input type="text" class="login-input" id="username-input" placeholder="請輸入名字 (例如：小明)...">
-        <button class="btn-login" onclick="loginUser()">進入挑戰</button>
-    </div>
-</div>
+        <!-- 當前佇列題目進度條 -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
 
-<!-- 主介面 -->
-<div class="container" id="main-container">
-    <div class="user-bar">
-        <span id="user-display">👤 玩家：未登入</span>
-        <span style="color: #6B7280; cursor: pointer;" onclick="logout()">➔ 登出</span>
-    </div>
+        <!-- 核心題目卡片 -->
+        <div class="card-content">
+            <div class="korean-text" id="target-text">안녕하세요</div>
+            <div class="hint-text" id="target-hint">類型：單字</div>
+            <div class="speaking-status" id="speaking-status"></div>
+        </div>
 
-    <h1>韓語跟讀挑戰與全球排行榜</h1>
-    <p class="subtitle">自然女聲發音 ＆ 全球雲端跨裝置進度同步系統</p>
+        <!-- 互動按鈕區 -->
+        <div class="actions">
+            <!-- 聽力與發音導讀 (關卡 1, 2, 3 通用) -->
+            <button class="btn-secondary" id="btn-tts">
+                <i class="fa-solid fa-volume-high"></i> 發音導讀
+            </button>
 
-    <!-- 模式選擇 -->
-    <div class="mode-selector">
-        <button class="mode-btn active" id="btn-practice-mode" onclick="setMode('practice')">📝 練習模式 (明文)</button>
-        <button class="mode-btn" id="btn-expert-mode" onclick="setMode('expert')">🔥 高手模式 (隱藏)</button>
-    </div>
+            <!-- 關卡 1 & 2 的按鈕組 -->
+            <div class="btn-group" id="normal-actions">
+                <button class="btn-primary" id="btn-know">
+                    <i class="fa-solid fa-check"></i> 我知道了
+                </button>
+            </div>
 
-    <!-- 數字鍵盤 -->
-    <div class="keypad" id="keypad"></div>
-
-    <!-- 句子展示框 -->
-    <div class="sentence-box">
-        <div class="hint-badge" id="mode-hint">練習中</div>
-        <div class="sentence-text" id="sentence-display">載入中...</div>
-    </div>
-
-    <!-- 控制按鈕 -->
-    <div class="controls">
-        <button class="btn btn-play" onclick="speakStandard()">🔊 播放標準女聲</button>
-        <button class="btn btn-record" id="record-btn" onclick="toggleRecord()">🎤 開始錄音</button>
-        <button class="btn btn-playback" id="playback-btn" onclick="playMyVoice()" disabled>🎧 回放我的聲音</button>
-    </div>
-
-    <!-- 比對反饋 -->
-    <div class="feedback" id="feedback-message">選擇上方數字開始挑戰！</div>
-
-    <!-- 送出挑戰 -->
-    <div class="submit-section">
-        <button class="btn-submit" id="submit-btn" onclick="submitToLeaderboard()" disabled>🏆 完成挑戰並送出成績 (0/20)</button>
+            <!-- 關卡 3 (口說) 的專用按鈕組 -->
+            <div class="btn-group hidden" id="speaking-actions">
+                <button class="btn-success" id="btn-mic">
+                    <i class="fa-solid fa-microphone"></i> 開始口說
+                </button>
+                <button class="btn-secondary" id="btn-skip">
+                    <i class="fa-solid fa-forward"></i> 跳過此題
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- 全球線上排行榜 -->
-    <div class="leaderboard">
-        <h3>🏆 全球線上排行榜 (即時連線)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th width="20%">名次</th>
-                    <th width="50%">玩家暱稱</th>
-                    <th width="30%">完成時間</th>
-                </tr>
-            </thead>
-            <tbody id="leaderboard-body">
-                <tr><td colspan="3" style="color: #9CA3AF;">載入中...</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-    // ==========================================
-    // ⚠️ SUPABASE 雲端資料庫設定區
-    // ==========================================
-    const SUPABASE_URL = "https://qiffkfhwakmtxfljiyzz.supabase.co"; 
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpZmZrZmh3YWttdHhmbGppeXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxODQ0NzIsImV4cCI6MjA5OTc2MDQ3Mn0.iUh5bZufh__Gxnn6zjz0XNEl9V7802Ho97d8IB66k74";             
-    let dbClient = null; 
-
-    function initSupabase() {
-        if (SUPABASE_URL === "" || SUPABASE_ANON_KEY === "YOUR_SUPABASE_ANON_KEY") return;
-        if (typeof supabase !== 'undefined' && supabase.createClient) {
-            try {
-                dbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log("🟢 Supabase 雲端連線成功初始化！");
-            } catch(e) { console.error(e); }
-        } else {
-            setTimeout(initSupabase, 500); 
-        }
-    }
-    initSupabase();
-
-    const sentences = [
-        "이름은 뭐예요?", "어느 나라 사람이에요?", "어디에서 왔어요?", "직업은 뭐예요?",
-        "지수는 경찰이에요.", "지수는 태국 사람이에요.", "마크는 의사예요.", "마크는 호주 사람이에요.",
-        "영민은 매니저예요.", "영민은 중국 사람이에요.", "리쿠는 사장님이에요.", "리쿠는 일본 사람이에요.",
-        "아트는 간호사예요.", "아트는 캐나다 사람이에요.", "서리는 비서예요.", "서리는 필리핀 사람이에요.",
-        "민수는 변호사예요.", "민수는 베트남 사람이에요.", "아담은 공무원이에요.", "아담은 독일 사람이에요."
-    ];
-
-    let currentUser = "";
-    let currentIdx = 0;
-    let currentMode = 'practice';
-    let expertProgress = Array(20).fill(false);
-
-    // 🎙️ 錄音與辨識核心狀態
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let recognition = null;
-    let isRecording = false;
-    let currentStream = null;
-    let finalTranscript = ""; // 用來即時累積辨識到的文字
-
-    const audioPlayback = document.getElementById('audioPlayback');
-
-// 🎤 麥克風辨識主引擎 (保留)
-    function initSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert("瀏覽器不支援 Web Speech API。建議在電腦上使用 Chrome 瀏覽器！");
-            return;
-        }
-        recognition = new SpeechRecognition();
-        recognition.lang = 'ko-KR';
-        
-        recognition.continuous = true; 
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.onresult = function(event) {
-            const latestResultIdx = event.results.length - 1;
-            const userSpeech = event.results[latestResultIdx][0].transcript.trim();
-            compareSpeech(userSpeech);
-        };
-
-        recognition.onerror = function() {
-            if (isRecording) {
-                document.getElementById('feedback-message').innerText = "⚠️ 辨識失敗，請重新錄音。";
-                document.getElementById('feedback-message').className = "feedback text-danger";
-                stopRecordingProcess();
+    <script>
+        /*************************************************************
+         * 1. 資料架構與動態生成邏輯 (原 words.js 概念)
+         *************************************************************/
+        // 基礎原始素材
+        const rawMaterials = {
+            1: {
+                words: ["짐", "볼펜", "담요", "휴지", "시계", "지우개", "컴퓨터", "라면", "콜라", "지갑", "커피", "메뉴", "우산"],
+                sentences: [] // 由單字與 이/가 있어요/없어요 動態組裝
+            },
+            2: {
+                words: ["하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "손님", "정장", "맥주", "잡지", "여권", "핸드폰", "옷"],
+                sentences: [] // 由固有數字與量詞動態組裝
+            },
+            3: {
+                words: ["반찬", "홍차", "빵"],
+                sentences: ["반찬 주세요", "홍차 주세요", "빵 주세요"]
             }
         };
 
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    audioUrl = URL.createObjectURL(audioBlob);
-                    document.getElementById('playback-btn').disabled = false;
-                };
-            }).catch(err => console.warn("未取得麥克風回放權限：", err));
-    }
+        // 韓文收音判斷（用於單元一的 이/가）
+        function hasBatchim(word) {
+            const lastChar = word.charCodeAt(word.length - 1);
+            if (lastChar < 0xAC00 || lastChar > 0xD7A3) return false; // 非韓文
+            return (lastChar - 0xAC00) % 28 !== 0;
+        }
 
-    let startDelayTimeout;
-    function toggleRecord() {
-        if (!recognition) return;
-        const recordBtn = document.getElementById('record-btn');
-        const feedbackMsg = document.getElementById('feedback-message');
+        // 固有數字變體轉換（用於量詞前）
+        function getNumAttr(numStr) {
+            const mapping = {
+                "하나": "한", "둘": "두", "셋": "세", "넷": "네", "다섯": "다섯",
+                "여섯": "여섯", "일곱": "일곱", "여덟": "여덟", "아홉": "아홉", "열": "열"
+            };
+            return mapping[numStr] || numStr;
+        }
 
-        if (!isRecording) {
-            isRecording = true;
-            recordBtn.innerText = "🛑 停止錄音中...";
-            recordBtn.classList.add('recording');
-            feedbackMsg.innerText = "🎙️ 系統預熱中，請稍候...";
-            feedbackMsg.className = "feedback";
+        // 動態初始化題庫總庫
+        function generateDatabase() {
+            let db = [];
+            let idCounter = 1;
+
+            // --- 單元一 生成 ---
+            rawMaterials[1].words.forEach(w => {
+                db.push({ id: idCounter++, unit: 1, type: 'word', text: w, learned: false, isFluent: false });
+                // 隨機組裝 이/가 있어요 / 없어요
+                const particle = hasBatchim(w) ? "이" : "가";
+                db.push({ id: idCounter++, unit: 1, type: 'sentence', text: `${w}${particle} 있어요`, learned: false, isFluent: false });
+                db.push({ id: idCounter++, unit: 1, type: 'sentence', text: `${w}${particle} 없어요`, learned: false, isFluent: false });
+            });
+
+            // --- 單元二 生成 ---
+            rawMaterials[2].words.forEach(w => {
+                db.push({ id: idCounter++, unit: 2, type: 'word', text: w, learned: false, isFluent: false });
+            });
+            // 隨機排列組合固有數字練習
+            const unit2Nouns = ["손님", "정장", "맥주", "잡지", "여권", "핸드폰", "옷", "커피", "콜라", "라면"];
+            const counters = ["개", "명", "잔", "벌", "병", "마리", "조각", "권", "대", "켤레"];
+            const numbers = ["하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열"];
             
-            recognition.start();
-            if (mediaRecorder && mediaRecorder.state === "inactive") {
-                audioChunks = [];
-                mediaRecorder.start();
+            // 產生一些隨機合理的量詞組合填入句型庫
+            for(let i=0; i<20; i++) {
+                const randNoun = unit2Nouns[Math.floor(Math.random() * unit2Nouns.length)];
+                const randNum = numbers[Math.floor(Math.random() * numbers.length)];
+                const randCounter = counters[Math.floor(Math.random() * counters.length)];
+                const combinedText = `${randNoun} ${getNumAttr(randNum)} ${randCounter}`;
+                db.push({ id: idCounter++, unit: 2, type: 'sentence', text: combinedText, learned: false, isFluent: false });
             }
 
-            startDelayTimeout = setTimeout(() => {
-                if (isRecording) {
-                    feedbackMsg.innerText = "🎤 請開始大聲跟讀！";
-                }
-            }, 250);
+            // --- 單元三 生成 ---
+            rawMaterials[3].words.forEach(w => {
+                db.push({ id: idCounter++, unit: 3, type: 'word', text: w, learned: false, isFluent: false });
+            });
+            rawMaterials[3].sentences.forEach(s => {
+                db.push({ id: idCounter++, unit: 3, type: 'sentence', text: s, learned: false, isFluent: false });
+            });
 
-        } else {
-            feedbackMsg.innerText = "⚙️ 正在彙整語音...";
-            clearTimeout(startDelayTimeout);
-            
-            setTimeout(() => {
-                stopRecordingProcess();
-            }, 400); 
+            return db;
         }
-    }
 
-    function stopRecordingProcess() {
-        isRecording = false;
-        const recordBtn = document.getElementById('record-btn');
-        recordBtn.innerText = "🎤 開始錄音";
-        recordBtn.classList.remove('recording');
-        try { recognition.stop(); } catch(e){}
-        if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
-    }
+        /*************************************************************
+         * 2. 狀態管理 (LocalStorage 持久化)
+         *************************************************************/
+        const STORAGE_KEY_DB = "KR_LEARN_DB_2026";
+        const STORAGE_KEY_PROGRESS = "KR_LEARN_PROG_2026";
 
-    function compareSpeech(userText) {
-        stopRecordingProcess();
-        
-        const cleanTarget = sentences[currentIdx].replace(/[\s\?\.；!,，。]/g, '');
-        const cleanUser = userText.replace(/[\s\?\.；!,，。]/g, '');
-        const feedbackMsg = document.getElementById('feedback-message');
+        let wordsDatabase = [];
+        let userProgress = {
+            currentUnit: 1,
+            currentStage: 1 // 1: Word, 2: Sentence, 3: Speaking
+        };
 
-        if (cleanTarget === cleanUser) {
-            feedbackMsg.innerText = `🎉 合格！辨識結果："${userText}"`;
-            feedbackMsg.className = "feedback text-success";
-            
-            if (currentMode === 'expert') {
-                expertProgress[currentIdx] = true;
-                saveProgress();
-                updateKeypadStatus();
-                updateSubmitButton();
-            }
-        } else {
-            feedbackMsg.innerText = `❌ 不合格。您唸的是："${userText}" (請再試一次)`;
-            feedbackMsg.className = "feedback text-danger";
-        }
-    }
-
-    function playMyVoice() {
-        if (audioUrl) {
-            if (globalAudioPlayer) {
-                globalAudioPlayer.src = audioUrl;
-                globalAudioPlayer.play();
+        function loadState() {
+            const savedDB = localStorage.getItem(STORAGE_KEY_DB);
+            const savedProg = localStorage.getItem(STORAGE_KEY_PROGRESS);
+            if (savedDB && savedProg) {
+                wordsDatabase = JSON.parse(savedDB);
+                userProgress = JSON.parse(savedProg);
             } else {
-                const audio = new Audio(audioUrl);
-                audio.play();
+                wordsDatabase = generateDatabase();
+                saveState();
             }
         }
-    }
 
-    // 📝 比對裁決（保留模糊比對的容錯率，對跟讀比較友善）
-    function executeFinalComparison() {
-        const feedbackMsg = document.getElementById('feedback-message');
-        
-        const cleanTarget = sentences[currentIdx].replace(/[\s\?\.；!,，。]/g, '').toLowerCase();
-        const studentSpeechClean = finalTranscript.replace(/[\s\?\.；!,，。]/g, '').toLowerCase();
-
-        if (!studentSpeechClean) {
-            // 如果 finalTranscript 是空的，代表辨識引擎沒抓到字
-            return; 
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY_DB, JSON.stringify(wordsDatabase));
+            localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(userProgress));
         }
 
-        const similarityScore = getSimilarity(studentSpeechClean, cleanTarget);
-        const matchPercent = Math.round(similarityScore * 100);
+        /*************************************************************
+         * 3. 核心演算法 (間隔重複比例混入 & Fisher-Yates 洗牌)
+         *************************************************************/
+        const TOTAL_QUESTIONS = 10; // T = 10 每輪練習十題
 
-        if (studentSpeechClean === cleanTarget || 
-            studentSpeechClean.includes(cleanTarget) || 
-            cleanTarget.includes(studentSpeechClean) ||
-            similarityScore >= 0.70) {
+        // Fisher-Yates 洗牌演算法
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[i Flyweights], array[j], array[i]] = [array[j], array[i]]; // 更正結構賦值語法
+            }
+            // 修正上方小手誤：
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+            return array;
+        }
+
+        // 動態生成關卡題庫佇列 (70% 新內容, 30% 歷史不熟)
+        function generateQuizQueue(unit, stageType) {
+            // 映射 stageType: 1&3 都用到題目的基礎池。1為word，2、3皆為sentence
+            const itemType = (stageType === 1) ? 'word' : 'sentence';
+
+            // 1. 篩選全池子
+            const newPool = wordsDatabase.filter(item => item.unit === unit && item.type === itemType && !item.learned);
+            const historyPool = wordsDatabase.filter(item => item.unit < unit && item.type === itemType && !item.isFluent);
+
+            let newTargetCount = Math.round(TOTAL_QUESTIONS * 0.7); // 7 題
+            let histTargetCount = TOTAL_QUESTIONS - newTargetCount;  // 3 題
+
+            let selectedNew = [];
+            let selectedHist = [];
+
+            // 2. 抽取歷史不熟材料
+            shuffle(historyPool);
+            selectedHist = historyPool.slice(0, histTargetCount);
+
+            // 例外安全處理：如果歷史不熟不足 30%
+            if (selectedHist.length < histTargetCount) {
+                newTargetCount += (histTargetCount - selectedHist.length);
+            }
+
+            // 3. 抽取新材料
+            shuffle(newPool);
+            selectedNew = newPool.slice(0, newTargetCount);
+
+            // 例外安全處理：如果新內容仍不足補滿總數 T，反向從歷史池或已學池撈取
+            let combined = [...selectedNew, ...selectedHist];
+            if (combined.length < TOTAL_QUESTIONS) {
+                const backupPool = wordsDatabase.filter(item => item.type === itemType && !combined.includes(item));
+                shuffle(backupPool);
+                const needed = TOTAL_QUESTIONS - combined.length;
+                combined = combined.concat(backupPool.slice(0, needed));
+            }
+
+            // 最終打亂大洗牌
+            return shuffle(combined.slice(0, TOTAL_QUESTIONS));
+        }
+
+        /*************************************************************
+         * 4. 語音技術與判定 (TTS 與 Web Speech API)
+         *************************************************************/
+        // TTS 發音導讀
+        function playTTS(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // 停止之前的聲音
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ko-KR';
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("您的瀏覽器不支援 TTS 語音播放功能。");
+            }
+        }
+
+        // Web Speech API 語音辨識初始化
+        let recognition = null;
+        if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR'; // 嚴格設定為韓語語系
+            recognition.continuous = false;
+            recognition.interimResults = false;
+        }
+
+        // 標點符號清除與小寫正規化處理
+        function cleanText(str) {
+            return str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
+        }
+
+        /*************************************************************
+         * 5. 關卡驅動主控制與 UI 渲染
+         *************************************************************/
+        let currentQueue = [];
+        let currentIndex = 0;
+
+        const elUnitTitle = document.getElementById("unit-title");
+        const elTargetText = document.getElementById("target-text");
+        const elTargetHint = document.getElementById("target-hint");
+        const elProgressBar = document.getElementById("progress-bar");
+        const elSpeakingStatus = document.getElementById("speaking-status");
+
+        const elNormalActions = document.getElementById("normal-actions");
+        const elSpeakingActions = document.getElementById("speaking-actions");
+
+        const elBtnTTS = document.getElementById("btn-tts");
+        const elBtnKnow = document.getElementById("btn-know");
+        const elBtnMic = document.getElementById("btn-mic");
+        const elBtnSkip = document.getElementById("btn-skip");
+
+        function initApp() {
+            loadState();
+            startStage();
+        }
+
+        function startStage() {
+            // 超出最大單元防呆
+            if (userProgress.currentUnit > 3) {
+                alert("恭喜！您已通關目前所有的韓語單元！系統將為您重置回第一單元。");
+                userProgress.currentUnit = 1;
+                userProgress.currentStage = 1;
+                wordsDatabase = generateDatabase();
+                saveState();
+            }
+
+            // 更新 UI 頂部標示
+            elUnitTitle.innerText = `單元 ${userProgress.currentUnit}`;
+            document.querySelectorAll(".stage-dot").forEach((dot, index) => {
+                dot.classList.remove("active");
+                if (index + 1 === userProgress.currentStage) {
+                    dot.classList.add("active");
+                }
+            });
+
+            // 依據關卡切換操作面板
+            if (userProgress.currentStage === 3) {
+                elNormalActions.classList.add("hidden");
+                elSpeakingActions.classList.remove("hidden");
+            } else {
+                elNormalActions.classList.remove("hidden");
+                elSpeakingActions.classList.add("hidden");
+            }
+
+            elSpeakingStatus.className = "speaking-status";
+            elSpeakingStatus.innerText = "";
+
+            // 生成當前關卡題庫佇列
+            currentQueue = generateQuizQueue(userProgress.currentUnit, userProgress.currentStage);
+            currentIndex = 0;
+            renderCard();
+        }
+
+        function renderCard() {
+            if (currentIndex >= currentQueue.length) {
+                nextStageDriver();
+                return;
+            }
+
+            const currentItem = currentQueue[currentIndex];
+            elTargetText.innerText = currentItem.text;
             
-            feedbackMsg.innerHTML = `🎉 【過關】發音正確！(相似度: ${matchPercent}%)<br><small style="color:gray;">(辨識結果: "${finalTranscript}")</small>`;
-            feedbackMsg.className = "feedback text-success";
+            // 顯示提示標籤
+            let typeLabel = currentItem.type === 'word' ? '單字' : '句型';
+            let historyLabel = currentItem.unit < userProgress.currentUnit ? ' (歷史複習)' : '';
+            elTargetHint.innerText = `類型：${typeLabel}${historyLabel}`;
+
+            // 更新進度條
+            const percentage = (currentIndex / currentQueue.length) * 100;
+            elProgressBar.style.width = `${percentage}%`;
             
-            if (currentMode === 'expert') {
-                expertProgress[currentIdx] = true;
-                saveProgress();
-                updateKeypadStatus();
-                updateSubmitButton();
+            elSpeakingStatus.className = "speaking-status";
+            elSpeakingStatus.innerText = "";
+        }
+
+        // 關卡進階流程驅動器
+        function nextStageDriver() {
+            elProgressBar.style.width = "100%";
+            if (userProgress.currentStage === 1) {
+                alert("🎉 單字背誦關卡完成！即將解鎖進入【句型練習】。");
+                userProgress.currentStage = 2;
+            } else if (userProgress.currentStage === 2) {
+                alert("🎉 句型練習關卡完成！即將解鎖進入【口說跟讀】。");
+                userProgress.currentStage = 3;
+            } else if (userProgress.currentStage === 3) {
+                alert("🏆 太棒了！口說關卡全數通過！恭喜晉級下一個單元！");
+                userProgress.currentUnit++;
+                userProgress.currentStage = 1; // 重置回單字關卡
             }
-        } else {
-            feedbackMsg.innerHTML = `❌ 發音不太對，再試一次！(相似度: ${matchPercent}%)<br><small style="color:gray;">(系統聽到: "${finalTranscript}")</small>`;
-            feedbackMsg.className = "feedback text-danger";
+            saveState();
+            startStage();
         }
-    }
 
-    // 登入與進度回復
-    async function loginUser() {
-        const input = document.getElementById('username-input').value.trim();
-        if (!input) {
-            alert("請輸入您的名字！");
-            return;
-        }
-        currentUser = input;
-        document.getElementById('user-display').innerText = `👤 玩家：${currentUser}`;
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('main-container').style.display = 'block';
-        
-        initSpeechEngine(); 
-        await loadSavedProgress();
-        initKeypad();
-        loadSentence(0);
-        await updateLeaderboardView();
-    }
-
-    async function loadSavedProgress() {
-        let loaded = false;
-        if (dbClient) {
-            try {
-                const { data, error } = await dbClient.from('user_progress').select('progress').eq('name', currentUser);
-                if (!error && data && data.length > 0 && data[0].progress) {
-                    const rawProgress = data[0].progress;
-                    expertProgress = Array.isArray(rawProgress) ? rawProgress : JSON.parse(rawProgress);
-                    loaded = true;
+        // 更新資料庫狀態
+        function updateItemStatus(item, isCorrect) {
+            const dbItem = wordsDatabase.find(d => d.id === item.id);
+            if (dbItem) {
+                if (userProgress.currentStage === 1 || userProgress.currentStage === 2) {
+                    dbItem.learned = true;
+                } else if (userProgress.currentStage === 3 && isCorrect) {
+                    dbItem.isFluent = true;
                 }
-            } catch (err) { console.warn(err); }
-        }
-        if (!loaded) {
-            const savedData = localStorage.getItem(`korean_progress_${currentUser}`);
-            if (savedData) {
-                try { expertProgress = JSON.parse(savedData); } catch(e) { expertProgress = Array(20).fill(false); }
+                saveState();
             }
         }
-    }
 
-    async function saveProgress() {
-        if (!currentUser) return;
-        localStorage.setItem(`korean_progress_${currentUser}`, JSON.stringify(expertProgress));
-        if (dbClient) {
-            try { await dbClient.from('user_progress').upsert({ name: currentUser, progress: expertProgress }, { onConflict: 'name' }); } catch (err) { console.error(err); }
-        }
-    }
-
-    function logout() {
-        currentUser = "";
-        document.getElementById('login-overlay').style.display = 'flex';
-        document.getElementById('main-container').style.display = 'none';
-        document.getElementById('username-input').value = "";
-        expertProgress = Array(20).fill(false);
-        if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-            currentStream = null;
-        }
-    }
-
-    function initKeypad() {
-        const keypad = document.getElementById('keypad');
-        keypad.innerHTML = '';
-        for (let i = 0; i < 20; i++) {
-            const btn = document.createElement('button');
-            btn.className = 'num-btn';
-            btn.id = `num-btn-${i}`;
-            btn.innerText = i + 1;
-            btn.onclick = () => { if(!isRecording) loadSentence(i); };
-            keypad.appendChild(btn);
-        }
-        updateKeypadStatus();
-        updateSubmitButton();
-    }
-
-    function updateKeypadStatus() {
-        for (let i = 0; i < 20; i++) {
-            const btn = document.getElementById(`num-btn-${i}`);
-            if (!btn) continue;
-            btn.classList.toggle('active', i === currentIdx);
-            btn.classList.toggle('passed', currentMode === 'expert' && expertProgress[i]);
-        }
-    }
-
-    function loadSentence(index) {
-        currentIdx = index;
-        const display = document.getElementById('sentence-display');
-        const hint = document.getElementById('mode-hint');
-        
-        if (currentMode === 'practice') {
-            display.innerText = `${index + 1}. ${sentences[index]}`;
-            display.classList.remove('sentence-hidden');
-            hint.innerText = "練習模式";
-            hint.style.background = "#DBEAFE"; hint.style.color = "#1E40AF";
-        } else {
-            display.innerText = `${index + 1}. 🔒 [ 語音播音後，請跟讀此句 ]`;
-            display.classList.add('sentence-hidden');
-            hint.innerText = "高手挑戰";
-            hint.style.background = "#FEE2E2"; hint.style.color = "#991B1B";
-        }
-
-        document.getElementById('playback-btn').disabled = true;
-        audioPlayback.removeAttribute('src'); // 徹底清空舊音訊路徑
-        document.getElementById('feedback-message').innerText = "準備好後，點擊「開始錄音」";
-        document.getElementById('feedback-message').className = "feedback";
-        updateKeypadStatus();
-    }
-
-    function setMode(mode) {
-        if (isRecording) return;
-        currentMode = mode;
-        document.getElementById('btn-practice-mode').classList.toggle('active', mode === 'practice');
-        document.getElementById('btn-expert-mode').classList.toggle('active', mode === 'expert');
-        updateKeypadStatus();
-        if (mode === 'practice') {
-            document.getElementById('submit-btn').disabled = true;
-        } else {
-            updateSubmitButton();
-        }
-        loadSentence(currentIdx);
-    }
-
-// 🔊 播放標準女聲
-    function speakStandard() {
-        // 🔥 【新增防呆】如果正在錄音，點擊播放會自動停止並結算當前錄音
-        if (isRecording) {
-            console.log("偵測到點擊播放，自動停止當前錄音...");
-            stopRecordingProcess();
-        }
-
-        const targetText = sentences[currentIdx];
-        try {
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(targetText);
-            utterance.lang = 'ko-KR'; 
-            utterance.rate = 0.85; 
-            const voices = window.speechSynthesis.getVoices();
-            const femaleKoreanVoice = voices.find(v => v.lang.startsWith('ko') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('sunhi') || v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('yuna'))); 
-            if (femaleKoreanVoice) utterance.voice = femaleKoreanVoice;
-            window.speechSynthesis.speak(utterance);
-        } catch(e) { console.error(e); }
-    }
-
-    // 🎧 回放我的聲音
-    function playMyVoice() {
-        // 🔥 【新增防呆】雖然按鈕通常會被停用，但如果正在錄音，點擊也會自動停止
-        if (isRecording) {
-            console.log("偵測到點擊回放，自動停止當前錄音...");
-            stopRecordingProcess();
-        }
-
-        if (audioPlayback.src) {
-            try {
-                audioPlayback.currentTime = 0; // 每次播放都拉回最開頭
-                audioPlayback.play();
-            } catch (err) {
-                alert("播放被瀏覽器阻擋，請再試一次！");
-                console.error(err);
-            }
-        } else {
-            alert("目前還沒有可用的錄音檔喔！");
-        }
-    }
-
-// 🎤 終極修正：控制開關（音軌共享機制）
-    async function toggleRecord() {
-        if (!recognition) {
-            alert("語音辨識系統未就緒，請重新整理頁面。");
-            return;
-        }
-        const recordBtn = document.getElementById('record-btn');
-        const playbackBtn = document.getElementById('playback-btn');
-        const feedbackMsg = document.getElementById('feedback-message');
-
-        if (!isRecording) {
-            // 強制中斷所有播放中的聲音
-            window.speechSynthesis.cancel();
-            try { audioPlayback.pause(); } catch(e){}
-
-            try {
-                finalTranscript = ""; // 清空上次辨識字
-                
-                // 🔥 【核心修正】如果目前沒有常駐音軌，才去跟瀏覽器要權限
-                if (!currentStream || !currentStream.active) {
-                    currentStream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            echoCancellation: true, 
-                            noiseSuppression: true,  
-                            autoGainControl: true    
-                        }
-                    });
-                }
-
-                audioChunks = [];
-                // 🔥 【核心修正】直接複用 currentStream，絕不重抓，避免硬體鎖死
-                mediaRecorder = new MediaRecorder(currentStream);
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data && event.data.size > 0) {
-                        audioChunks.push(event.data);
-                    }
-                };
-
-                mediaRecorder.onstop = () => {
-                    console.log("錄音碎片總數:", audioChunks.length);
-                    if (audioChunks.length > 0) {
-                        // 確保使用標準的音訊格式進行封裝
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        
-                        audioPlayback.src = audioUrl; 
-                        audioPlayback.load();         
-                        playbackBtn.disabled = false; 
-                        console.log("🟢 錄音實體檔案已成功生成並綁定！");
-                    } else {
-                        console.warn("⚠️ 依舊沒有收集到錄音碎片，硬體衝突仍存在");
-                    }
-
-                    // 💡 【核心修正】這裡「不要」去執行 track.stop()！
-                    // 讓 currentStream 繼續活著，辨識引擎才不會死掉，下次錄音也能直接複用。
-                    
-                    // 執行最終比對裁決
-                    executeFinalComparison();
-                };
-
-                // 標記開始錄音
-                isRecording = true;
-                
-                // 🔥 縮短切片時間至 5 毫秒，強制瀏覽器更頻繁地灌入音訊碎片，防止漏字
-                mediaRecorder.start(5); 
-
-                recordBtn.innerText = "🛑 點擊停止錄音並判定";
-                recordBtn.classList.add('recording');
-                feedbackMsg.innerText = "🎤 已經準備好了，請開始跟讀...";
-                feedbackMsg.className = "feedback";
-                playbackBtn.disabled = true;
-
-            } catch (err) {
-                console.error("麥克風存取失敗:", err);
-                feedbackMsg.innerText = "⚠️ 麥克風權限被拒絕或錄音裝置異常";
-                feedbackMsg.className = "feedback text-danger";
-                isRecording = false;
-            }
-        } else {
-            feedbackMsg.innerText = "⚙️ 正在即時結算分數...";
-            // 🔥 給瀏覽器 50 毫秒的緩衝時間，讓它把最後講的音節完整寫入 mediaRecorder 再執行停止
-            setTimeout(() => {
-                stopRecordingProcess();
-            }, 500); 
-        }
-    }
-
-    // 🛑 終極修正：停止錄音進程
-    function stopRecordingProcess() {
-        if (!isRecording) return; 
-        isRecording = false;
-
-        const recordBtn = document.getElementById('record-btn');
-        if (recordBtn) {
-            recordBtn.innerText = "🎤 開始錄音";
-            recordBtn.classList.remove('recording');
-        }
-
-        // 只關閉 MediaRecorder 本身，這會觸發上面的 mediaRecorder.onstop
-        // 絕對不要去動到常駐的 currentStream 和 recognition！
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            try { 
-                mediaRecorder.stop(); 
-            } catch(e) { 
-                console.error("停止錄音器失敗:", e); 
-            }
-        }
-    }
-
-    // 🎧 終極修正：回放我的聲音
-    function playMyVoice() {
-        if (isRecording) {
-            stopRecordingProcess();
-        }
-
-        if (audioPlayback.src) {
-            try {
-                audioPlayback.currentTime = 0; 
-                // 💡 很多瀏覽器不允許在音訊載入完畢前播放，用 play() 的 Promise 來提高穩定度
-                const playPromise = audioPlayback.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.error("播放失敗，嘗試重新載入:", error);
-                        audioPlayback.load();
-                        setTimeout(() => { audioPlayback.play(); }, 100);
-                    });
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        } else {
-            alert("目前還沒有可用的錄音檔喔！");
-        }
-    }
-    
-    function updateSubmitButton() {
-        const passedCount = expertProgress.filter(Boolean).length;
-        const submitBtn = document.getElementById('submit-btn');
-        submitBtn.innerText = `🏆 完成挑戰並送出成績 (${passedCount}/20)`;
-        submitBtn.disabled = (passedCount !== 20);
-    }
-
-    async function submitToLeaderboard() {
-        const finishTime = new Date().toLocaleString('zh-TW', { hour12: false });
-        let list = JSON.parse(localStorage.getItem('korean_global_board')) || [];
-        list.push({ name: currentUser, time: finishTime });
-        localStorage.setItem('korean_global_board', JSON.stringify(list));
-
-        if (dbClient) {
-            try { await dbClient.from('leaderboard').insert([{ name: currentUser, time: finishTime }]); } catch (err) { console.error(err); }
-        }
-
-        alert(`恭喜 ${currentUser}！20句高手模式大滿貫通關！`);
-        await updateLeaderboardView();
-
-        expertProgress = Array(20).fill(false);
-        saveProgress();
-        updateKeypadStatus();
-        updateSubmitButton();
-        loadSentence(0);
-    }
-
-    async function updateLeaderboardView() {
-        const tbody = document.getElementById('leaderboard-body');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        let list = [];
-        if (dbClient) {
-            try {
-                const { data, error } = await dbClient.from('leaderboard').select('*').order('id', { ascending: false });
-                if (!error && data) list = data;
-            } catch (err) { console.warn(err); }
-        }
-        if (list.length === 0) {
-            list = JSON.parse(localStorage.getItem('korean_global_board')) || [];
-            list.reverse(); 
-        }
-        if (list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="color: #9CA3AF;">線上暫無排行，快來成為第一個通關的人！</td></tr>`;
-            return;
-        }
-        list.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td><strong>#${index + 1}</strong></td><td>${escapeHTML(item.name)}</td><td>${item.time}</td>`;
-            tbody.appendChild(row);
+        /*************************************************************
+         * 6. 事件監聽設定
+         *************************************************************/
+        // 發音導讀按鈕
+        elBtnTTS.addEventListener("click", () => {
+            const currentItem = currentQueue[currentIndex];
+            if (currentItem) playTTS(currentItem.text);
         });
-    }
 
-    function escapeHTML(str) {
-        return str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t] || t));
-    }
-</script>
+        // 關卡 1 & 2「我知道了」按鈕
+        elBtnKnow.addEventListener("click", () => {
+            const currentItem = currentQueue[currentIndex];
+            updateItemStatus(currentItem, true);
+            currentIndex++;
+            renderCard();
+        });
 
+        // 關卡 3「開始口說」辨識監聽
+        if (recognition) {
+            elBtnMic.addEventListener("click", () => {
+                elSpeakingStatus.className = "speaking-status status-listening";
+                elSpeakingStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在聆聽您的發音...`;
+                recognition.start();
+            });
+
+            recognition.onresult = function(event) {
+                const userSpeech = event.results[0][0].transcript;
+                const currentItem = currentQueue[currentIndex];
+                
+                const cleanedUser = cleanText(userSpeech);
+                const cleanedTarget = cleanText(currentItem.text);
+
+                console.log(`識別結果: ${userSpeech} (處理後: ${cleanedUser})`);
+                console.log(`正確目標: ${currentItem.text} (處理後: ${cleanedTarget})`);
+
+                // 字串完全比對判定
+                if (cleanedUser === cleanedTarget) {
+                    elSpeakingStatus.className = "speaking-status status-success";
+                    elSpeakingStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> 答對了！辨識結果："${userSpeech}"`;
+                    
+                    updateItemStatus(currentItem, true);
+                    // 答對延遲一秒自動進入下一題
+                    setTimeout(() => {
+                        currentIndex++;
+                        renderCard();
+                    }, 1200);
+                } else {
+                    elSpeakingStatus.className = "speaking-status status-error";
+                    elSpeakingStatus.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 唸錯囉，請再試一次。辨識結果："${userSpeech}"`;
+                }
+            };
+
+            recognition.onerror = function(event) {
+                elSpeakingStatus.className = "speaking-status status-error";
+                elSpeakingStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 語音辨識出錯 (${event.error})，請再試一次。`;
+            };
+        } else {
+            elBtnMic.addEventListener("click", () => {
+                alert("很抱歉，您的瀏覽器不支援 Web Speech API 語音辨識（建議使用 Google Chrome 瀏覽器）。");
+            });
+        }
+
+        // 關卡 3「跳過此題」按鈕
+        elBtnSkip.addEventListener("click", () => {
+            const currentItem = currentQueue[currentIndex];
+            updateItemStatus(currentItem, false); // 未過關，不更新 isFluent
+            currentIndex++;
+            renderCard();
+        });
+
+        // 啟動應用程式
+        window.addEventListener("DOMContentLoaded", initApp);
+    </script>
 </body>
 </html>
