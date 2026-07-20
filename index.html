@@ -758,43 +758,55 @@
 
             try { recognition.start(); } catch(e){ console.log(e); }
 
-            recognition.onresult = function(event) {
-                if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
-                stopSpeechRecognition();
-                document.getElementById("lbl-status-text").className = "status-msg";
+            // 請替換掉原程式碼中 triggerAutoSpeechFlow 內的 recognition.onresult 與 onerror 段落
 
-                const speechResult = event.results[0][0].transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
-                
-                if (currentStage === 1 && wordLevelMap[currentQueue[currentIndex].text] === 3) {
-                    // Level 3：字串必須同時包含韓文及中文
-                    const cleanKo = targetKoreanText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
-                    const cleanZh = targetChineseText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
-                    
-                    if ((speechResult.includes(cleanKo) || cleanKo.includes(speechResult)) && speechResult.includes(cleanZh)) {
-                        handleAnswerAction(true);
-                    } else {
-                        handleAnswerAction(false);
-                    }
-                } else {
-                    // 階段二、三標準跟讀：與音檔整串句子邏輯完全一樣的精準對應
-                    const targetClean = targetKoreanText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
-                    if(speechResult === targetClean || targetClean.includes(speechResult) || speechResult.includes(targetClean)) {
-                        handleAnswerAction(true);
-                    } else {
-                        handleAnswerAction(false);
-                    }
-                }
-            };
+recognition.onresult = function(event) {
+    if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
+    
+    // 【核心修正】立刻拔掉所有事件監聽，防止瀏覽器非同步再次觸發 onresult 或 onerror
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onstart = null;
+    stopSpeechRecognition();
+    
+    document.getElementById("lbl-status-text").className = "status-msg";
 
-            recognition.onerror = function(event) {
-                if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
-                if(event.error !== 'no-speech') {
-                    stopSpeechRecognition();
-                    document.getElementById("lbl-status-text").className = "status-msg";
-                    handleAnswerAction(false);
-                }
-            };
+    const speechResult = event.results[0][0].transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
+    
+    if (currentStage === 1 && wordLevelMap[currentQueue[currentIndex].text] === 3) {
+        const cleanKo = targetKoreanText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
+        const cleanZh = targetChineseText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
+        
+        if ((speechResult.includes(cleanKo) || cleanKo.includes(speechResult)) && speechResult.includes(cleanZh)) {
+            handleAnswerAction(true);
+        } else {
+            handleAnswerAction(false);
         }
+    } else {
+        const targetClean = targetKoreanText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "").toLowerCase();
+        if(speechResult === targetClean || targetClean.includes(speechResult) || speechResult.includes(targetClean)) {
+            handleAnswerAction(true);
+        } else {
+            handleAnswerAction(false);
+        }
+    }
+};
+
+recognition.onerror = function(event) {
+    if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
+    
+    // 如果是無傷大雅的 no-speech，且還沒跑過 onresult，就先忽略不擋
+    if(event.error === 'no-speech') return; 
+
+    // 【核心修正】一旦確認是真正錯誤，立刻清空監聽，防重複觸發
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onstart = null;
+    stopSpeechRecognition();
+    
+    document.getElementById("lbl-status-text").className = "status-msg";
+    handleAnswerAction(false);
+};
 
         function stopSpeechRecognition() { 
             if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
