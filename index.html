@@ -85,8 +85,8 @@
     <!-- Firebase 註冊與登入視窗 -->
     <div class="modal" id="login-modal">
         <div class="modal-content">
-            <h3><i class="fa-solid fa-cloud"></i> 雲端韓語遊戲化系統</h3>
-            <p style="font-size: 0.9rem; color:#6b7280; margin-bottom: 15px;">使用 Firebase Auth 安全登入</p>
+            <h3><i class="fa-solid fa-cloud"></i> 歡迎來到韓語大冒險</h3>
+            <p style="font-size: 0.9rem; color:#6b7280; margin-bottom: 15px;">優娜韓語 每天陪你一起進步</p>
             
             <!-- 切換選單 -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -106,7 +106,7 @@
             </div>
 
             <div style="margin-top: 10px;">
-                <button class="base-btn btn-primary" id="btn-auth-submit">登入</button>
+                <button class="base-btn btn-primary" id="btn-auth-submit">進入挑戰</button>
             </div>
         </div>
     </div>
@@ -121,9 +121,9 @@
         <div class="header">
             <div class="top-row">
                 <select id="unit-dropdown-selector" style="font-weight:bold; padding:6px 12px; border-radius:8px; border:2px solid #e5e7eb; background:#f3f4f6; cursor:pointer;">
-                    <option value="1">單元 1 (基礎單字)</option>
-                    <option value="2">單元 2 (數量詞句型)</option>
-                    <option value="3">單元 3 (給予請求)</option>
+                    <option value="1">單元 1 (有/沒有)</option>
+                    <option value="2">單元 2 (數量詞)</option>
+                    <option value="3">單元 3 (請給我)</option>
                 </select>
                 <div class="stages-indicator">
                     <span class="stage-dot" id="dot-s1" data-stage="1">階段 1</span>
@@ -174,7 +174,7 @@
             { unit: 1, text: "커피", chinese: "咖啡", type: "noun" },
             { unit: 2, text: "양말", chinese: "襪子", type: "noun" },
             { unit: 2, text: "잡지", chinese: "雜誌", type: "noun" },
-            { unit: 2, text: "컴퓨車", text: "컴퓨터", chinese: "電腦", type: "noun" },
+            { unit: 2, text: "컴퓨터", chinese: "電腦", type: "noun" },
             { unit: 3, text: "사과", chinese: "蘋果", type: "noun" },
             { unit: 3, text: "물", chinese: "水", type: "noun" },
             { unit: 3, text: "우유", chinese: "牛奶", type: "noun" }
@@ -340,10 +340,10 @@
         let questionStartTime = 0; // 計算反應速度
 
         const customQuantifiers = {
-            "옷": { ko: "벌", zh: "件" }, "양말": { ko: "켤レ", ko: "켤레", zh: "雙" },
+            "옷": { ko: "벌", zh: "件" }, "양말": { ko: "켤레", zh: "雙" },
             "잡지": { ko: "권", zh: "本" }, "책": { ko: "권", zh: "本" },
             "커피": { ko: "잔", zh: "杯" }, "컴퓨터": { ko: "대", zh: "台" },
-            "사과": { ko: "개", zh: "個" }, "물": { ko: "잔", zh: "杯" }, "우유": { ko: "팩", zh: "盒" }
+            "사과": { ko: "개", zh: "個" }, "물": { ko: "잔", zh: "杯" }, "우유": { ko: "병", zh: "瓶" }
         };
         const nativeNumbersMap = ["", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열하나", "열둘", "열셋", "열넷", "열다섯", "열여섯", "열일곱", "열여덟", "열아홉"];
         const transformMap = { "하나": "한", "둘": "두", "셋": "세", "넷": "네", "열하나": "열한", "열둘": "열두", "열셋": "열세", "열넷": "열네" };
@@ -812,14 +812,14 @@
         function handleStageComplete() {
             if(currentStage === 1) {
                 if(level3CorrectCount >= 10) {
-                    alert(`過關🎉 順利完成 10 題語音聽打錄音！晉級階段二！`);
+                    alert(`過關🎉 ！晉級階段二！`);
                     currentUserData.maxUnlockedStage = 2; syncDataToFirestore(); loadStage(currentUnit, 2);
                 } else {
-                    alert(`重組佇列：尚未達標 10 題聽打答對門檻。`); loadStage(currentUnit, 1);
+                    alert(`尚未達標 10 題聽打答對門檻。`); loadStage(currentUnit, 1);
                 }
             } 
             else if(currentStage === 2) {
-                alert("🎉 階段二應用拼句過關！解鎖階段三盲聽跟讀！");
+                alert("🎉 過關！解鎖階段三盲聽跟讀！");
                 currentUserData.maxUnlockedStage = 3; syncDataToFirestore(); loadStage(currentUnit, 3);
             } 
             else if(currentStage === 3) {
