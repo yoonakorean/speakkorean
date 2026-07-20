@@ -159,7 +159,8 @@
 
         <div class="btn-action-row">
             <button class="base-btn btn-secondary" id="btn-tts"><i class="fa-solid fa-volume-high"></i> 播放音檔</button>
-            <button class="base-btn btn-danger hidden" id="btn-pause-mic"><i class="fa-solid fa-microphone-slash"></i> 暫停錄音</button>
+            <button class="base-btn btn-danger hidden" id="btn-pause-mic"><i class="fa-solid fa-pause"></i> 暫停錄音</button>
+            <button class="base-btn btn-secondary hidden" id="btn-play-correct"><i class="fa-solid fa-circle-play"></i> 播放正確音檔</button>
             <button class="base-btn btn-success hidden" id="btn-continue">繼續 <i class="fa-solid fa-arrow-right"></i></button>
         </div>
     </div>
@@ -168,6 +169,8 @@
         /*************************************************************
          * 1. 虛擬單字庫與 Leitner 跨天結構 (限定本單元及先前單元範圍)
          *************************************************************/
+        // 這份陣列只當作「Google Sheets 讀取失敗時」的備用預設題庫,
+        // 正式的單字/語法內容請改到 Google Sheets 維護(見下方 loadContentFromSheets)。
         window.globalWordsPool = [
             { unit: 1, text: "옷", chinese: "衣服", type: "noun" },
             { unit: 1, text: "책", chinese: "書", type: "noun" },
@@ -179,6 +182,55 @@
             { unit: 3, text: "물", chinese: "水", type: "noun" },
             { unit: 3, text: "우유", chinese: "牛奶", type: "noun" }
         ];
+        // 量詞對應表同樣改為可被 Google Sheets 覆寫,這裡保留預設值當備援
+        let customQuantifiers = {
+            "옷": { ko: "벌", zh: "件" }, "양말": { ko: "켤레", zh: "雙" },
+            "잡지": { ko: "권", zh: "本" }, "책": { ko: "권", zh: "本" },
+            "커피": { ko: "잔", zh: "杯" }, "컴퓨터": { ko: "대", zh: "台" },
+            "사과": { ko: "개", zh: "個" }, "물": { ko: "잔", zh: "杯" }, "우유": { ko: "병", zh: "瓶" }
+        };
+
+        /*************************************************************
+         * 1.5 Google Sheets 教材讀取(以 Sheets API 唯讀方式取代寫死的題庫)
+         * 設定步驟請見對話說明,這裡只需要填入試算表 ID 與 API 金鑰。
+         *   - 分頁「Vocab」欄位順序:unit | text | chinese | type
+         *   - 分頁「Quantifiers」欄位順序:noun | quantifier_ko | quantifier_zh
+         *************************************************************/
+        const SHEETS_SPREADSHEET_ID = "1DeedlDS577YGuc2suNXtRmym6eL931mUUL5fFTPZj7U";
+        const SHEETS_API_KEY = "AIzaSyBQTMQv_TOlkHzqVtHZtPYUp4imKA66jjA";
+
+        async function loadContentFromSheets() {
+            if (!SHEETS_SPREADSHEET_ID || SHEETS_SPREADSHEET_ID.includes("請貼入") ||
+                !SHEETS_API_KEY || SHEETS_API_KEY.includes("請貼入")) {
+                console.warn("尚未設定 Google Sheets,目前使用內建預設題庫。");
+                return;
+            }
+            try {
+                const base = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_SPREADSHEET_ID}/values`;
+                const [vocabRes, quantRes] = await Promise.all([
+                    fetch(`${base}/Vocab!A2:D?key=${SHEETS_API_KEY}`),
+                    fetch(`${base}/Quantifiers!A2:C?key=${SHEETS_API_KEY}`)
+                ]);
+                const vocabJson = await vocabRes.json();
+                const quantJson = await quantRes.json();
+
+                if (vocabJson.values && vocabJson.values.length) {
+                    window.globalWordsPool = vocabJson.values
+                        .filter(row => row[0] && row[1] && row[2])
+                        .map(row => ({ unit: parseInt(row[0]), text: row[1], chinese: row[2], type: row[3] || "noun" }));
+                }
+                if (quantJson.values && quantJson.values.length) {
+                    const fresh = {};
+                    quantJson.values.forEach(row => { if (row[0]) fresh[row[0]] = { ko: row[1], zh: row[2] }; });
+                    customQuantifiers = fresh;
+                }
+                console.log("已從 Google Sheets 載入教材:", window.globalWordsPool.length, "個單字");
+            } catch (e) {
+                console.error("讀取 Google Sheets 教材失敗,改用內建預設題庫", e);
+            }
+        }
+        // 立刻開始讀取,登入流程結束進入 enterApp() 時會 await 這個 Promise 再開始出題
+        const contentLoadingPromise = loadContentFromSheets();
 
         /*************************************************************
          * 2. Firebase 組態初始化 (請在此處填入您的專案金鑰)
@@ -296,16 +348,18 @@
             }
         });
 
-        function enterApp() {
+        async function enterApp() {
             document.getElementById("login-modal").classList.add("hidden");
             document.getElementById("main-app").classList.remove("hidden");
-            
+            document.getElementById("lbl-target-text").innerText = "教材載入中...";
+
             // 綁定 UI 頂端狀態
             document.getElementById("lbl-username").innerText = currentUserData.nickname;
             document.getElementById("lbl-login-days").innerText = currentUserData.streakDays || 1;
             document.getElementById("lbl-xp").innerText = currentUserData.points || 0;
             document.getElementById("lbl-user-level").innerText = currentUserData.level || "1A";
 
+            await contentLoadingPromise; // 確保 Google Sheets 單字/量詞資料已到位再出題
             setupAppControls();
             loadStage(currentUserData.maxUnlockedUnit || 1, 1);
         }
@@ -339,12 +393,6 @@
         let level3CorrectCount = 0;
         let questionStartTime = 0; // 計算反應速度
 
-        const customQuantifiers = {
-            "옷": { ko: "벌", zh: "件" }, "양말": { ko: "켤레", zh: "雙" },
-            "잡지": { ko: "권", zh: "本" }, "책": { ko: "권", zh: "本" },
-            "커피": { ko: "잔", zh: "杯" }, "컴퓨터": { ko: "대", zh: "台" },
-            "사과": { ko: "개", zh: "個" }, "물": { ko: "잔", zh: "杯" }, "우유": { ko: "병", zh: "瓶" }
-        };
         const nativeNumbersMap = ["", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉", "열", "열하나", "열둘", "열셋", "열넷", "열다섯", "열여섯", "열일곱", "열여덟", "열아홉"];
         const transformMap = { "하나": "한", "둘": "두", "셋": "세", "넷": "네", "열하나": "열한", "열둘": "열두", "열셋": "열세", "열넷": "열네" };
         const leitnerIntervals = [0, 1, 2, 4, 7, 15]; // Box 0~5 間隔天數
@@ -467,6 +515,7 @@
             document.getElementById("btn-hint-toggle").classList.add("hidden");
             document.getElementById("btn-continue").classList.add("hidden");
             document.getElementById("btn-pause-mic").classList.add("hidden");
+            document.getElementById("btn-play-correct").classList.add("hidden");
             
             document.querySelectorAll(".stage-dot").forEach(dot => {
                 dot.className = "stage-dot" + (parseInt(dot.getAttribute("data-stage")) === currentStage ? " active" : "");
@@ -506,6 +555,7 @@
             document.getElementById("btn-hint-toggle").classList.add("hidden");
             document.getElementById("btn-continue").classList.add("hidden");
             document.getElementById("btn-pause-mic").classList.add("hidden");
+            document.getElementById("btn-play-correct").classList.add("hidden");
             document.getElementById("lbl-status-text").className = "status-msg";
             document.getElementById("lbl-status-text").innerText = "";
             document.getElementById("quiz-options-container").classList.add("hidden");
@@ -537,8 +587,8 @@
                 } 
                 else if (currentLevel === 3) {
                     document.getElementById("btn-tts").classList.add("hidden");
-                    document.getElementById("lbl-target-text").innerText = `${item.chinese}\n(🎤 提示詞：韓文中文要一起說)`;
-                    setTimeout(() => { triggerAutoSpeechFlow(item.text, item.chinese); }, 1000);
+                    document.getElementById("lbl-target-text").innerText = `${item.chinese}\n(🎤 請開口說出這個韓文單字)`;
+                    setTimeout(() => { triggerAutoSpeechFlow(item.text); }, 1000);
                 }
             } 
             else if(currentStage === 2) {
@@ -698,6 +748,12 @@
             document.getElementById("lbl-xp").innerText = currentUserData.points;
             syncDataToFirestore();
 
+            // 不論對錯、不論關卡,答題後都提供「播放正確音檔」複習發音
+            const correctAudio = item.audioText || item.text;
+            const playCorrectBtn = document.getElementById("btn-play-correct");
+            playCorrectBtn.classList.remove("hidden");
+            playCorrectBtn.onclick = () => playTTS(correctAudio);
+
             if(currentStage === 3) {
                 if(hp <= 0) {
                     alert("💀 挑戰失敗！正確率未達標，請重新修煉！"); loadStage(currentUnit, 1);
@@ -754,51 +810,72 @@
             return costs[s2.length];
         }
 
-        function triggerAutoSpeechFlow(targetKoreanText, targetChineseText = "") {
+        let micPaused = false; // 麥克風暫停狀態(true = 已暫停,等待使用者按下繼續)
+
+        function triggerAutoSpeechFlow(targetKoreanText) {
             if(!recognition) {
                 // 無麥克風設備模擬環境自動通過
                 setTimeout(() => { handleAnswerAction(true); }, 1500); return;
             }
-            
-            // Level 3 要求中韓混合說，故使用台灣中文集，其餘關卡使用標準韓文集
-            recognition.lang = (currentStage === 1) ? 'cmn-Hant-TW' : 'ko-KR';
-            document.getElementById("lbl-status-text").className = "status-msg listening-active";
-            document.getElementById("lbl-status-text").innerHTML = `<i class="fa-solid fa-microphone"></i> 錄音中，請朗讀...`;
-            
-            document.getElementById("btn-pause-mic").classList.remove("hidden");
-            document.getElementById("btn-pause-mic").onclick = function() {
-                stopSpeechRecognition();
-                document.getElementById("lbl-status-text").className = "status-msg";
-                document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--warning)">⏸️ 語音偵測已暫停</span>`;
-            };
 
-            if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
-            micTimeoutTracker = setTimeout(() => {
-                stopSpeechRecognition();
-                handleAnswerAction(false);
-            }, 6000);
+            // 所有階段一律只需要辨識韓文
+            recognition.lang = 'ko-KR';
+            micPaused = false;
+            setStatusListening();
+            setupPauseButton(targetKoreanText);
+            startMicTimeout();
 
             try { recognition.start(); } catch(e){}
 
             recognition.onresult = function(event) {
                 stopSpeechRecognition();
                 const userSpeech = event.results[0][0].transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "");
-                
-                if(currentStage === 1 && wordLevelMap[currentQueue[currentIndex].text] === 3) {
-                    // Level 3 混合模式：需同時涵蓋中文與韓文的特徵
-                    let cleanKo = targetKoreanText.replace(/[^\uAC00-\uD7A3]/g, "");
-                    let simKo = getSimilarity(userSpeech.replace(/[^\uAC00-\uD7A3]/g, ""), cleanKo);
-                    let hasZh = userSpeech.includes(targetChineseText);
-                    
-                    if(simKo >= 0.8 && hasZh) handleAnswerAction(true);
-                    else handleAnswerAction(false);
+                let cleanTarget = targetKoreanText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "");
+                let similarity = getSimilarity(userSpeech, cleanTarget);
+
+                if(similarity >= 0.8) handleAnswerAction(true);
+                else handleAnswerAction(false);
+            };
+        }
+
+        function setStatusListening() {
+            document.getElementById("lbl-status-text").className = "status-msg listening-active";
+            document.getElementById("lbl-status-text").innerHTML = `<i class="fa-solid fa-microphone"></i> 錄音中，請朗讀韓文...`;
+        }
+
+        function startMicTimeout() {
+            if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
+            micTimeoutTracker = setTimeout(() => {
+                stopSpeechRecognition();
+                handleAnswerAction(false);
+            }, 6000);
+        }
+
+        // 暫停鍵:第一次按下＝暫停錄音(圖示變播放鍵),再按一次＝繼續錄音(圖示變暫停鍵)
+        function setupPauseButton(targetKoreanText) {
+            const btn = document.getElementById("btn-pause-mic");
+            btn.classList.remove("hidden");
+            btn.innerHTML = `<i class="fa-solid fa-pause"></i> 暫停錄音`;
+            btn.classList.add("btn-danger"); btn.classList.remove("btn-secondary");
+
+            btn.onclick = function() {
+                if(!micPaused) {
+                    // 暫停：停止語音偵測,但不判定答案、不清空題目狀態
+                    micPaused = true;
+                    if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
+                    if(recognition) { try { recognition.stop(); } catch(e){} }
+                    btn.innerHTML = `<i class="fa-solid fa-play"></i> 繼續錄音`;
+                    btn.classList.remove("btn-danger"); btn.classList.add("btn-secondary");
+                    document.getElementById("lbl-status-text").className = "status-msg";
+                    document.getElementById("lbl-status-text").innerHTML = `<span style="color:var(--warning)">⏸️ 語音偵測已暫停</span>`;
                 } else {
-                    // 階段二與三：標準整句語音相似度判定
-                    let cleanTarget = targetKoreanText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?\s]/g, "");
-                    let similarity = getSimilarity(userSpeech, cleanTarget);
-                    
-                    if(similarity >= 0.8) handleAnswerAction(true);
-                    else handleAnswerAction(false);
+                    // 繼續：重新開始錄音與逾時計時
+                    micPaused = false;
+                    setStatusListening();
+                    btn.innerHTML = `<i class="fa-solid fa-pause"></i> 暫停錄音`;
+                    btn.classList.add("btn-danger"); btn.classList.remove("btn-secondary");
+                    startMicTimeout();
+                    try { recognition.start(); } catch(e){}
                 }
             };
         }
@@ -806,6 +883,7 @@
         function stopSpeechRecognition() {
             if(micTimeoutTracker) clearTimeout(micTimeoutTracker);
             if(recognition) { try { recognition.stop(); } catch(e){} }
+            micPaused = false;
             document.getElementById("btn-pause-mic").classList.add("hidden");
         }
 
